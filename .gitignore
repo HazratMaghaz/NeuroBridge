@@ -1,0 +1,108 @@
+# ============================================================
+# Python / Jupyter
+# ============================================================
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ============================================================
+# OS / IDE
+# ============================================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ============================================================
+# Large bioinformatics/pathology data
+# ============================================================
+*.svs
+*.ndpi
+*.mrxs
+*.tif
+*.tiff
+*.bam
+*.cram
+*.sam
+*.fastq
+*.fq
+*.fastq.gz
+*.fq.gz
+*.tar
+*.tar.gz
+*.zip
+*.7z
+*.rar
+
+# ============================================================
+# Large project data folders
+# ============================================================
+data/
+image-data/
+patches/
+embeddings/
+features/
+models/weights/
+models/external/
+results/
+review_packages/
+logs/
+
+# Keep lightweight metadata/documentation placeholders if needed
+!data/.gitkeep
+!metadata/
+!metadata/*.md
+!metadata/*.csv
+!configs/
+!configs/*.yaml
+!configs/*.yml
+!configs/*.json
+
+# ============================================================
+# Model artifacts
+# ============================================================
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.joblib
+*.onnx
+*.h5
+*.hdf5
+
+# ============================================================
+# Generated reports
+# ============================================================
+*.html
+*.pdf
+*.png
+*.jpg
+*.jpeg
+
+# Allow docs images if you later want them tracked
+!docs/**/*.png
+!docs/**/*.jpg
+!docs/**/*.jpeg
+
+# ============================================================
+# Secrets / credentials
+# ============================================================
+.env
+.env.*
+*.key
+*.pem
+credentials.json
+token.json
+# Temporary external downloads accidentally placed in project root
+Gene_Expression_RNA*
+PDC_*manifest*.csv
+PDC_clinical_data_manifests*.zip
+Papers/
+cns_multimodalai_github_starter_pack/
