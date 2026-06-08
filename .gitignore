@@ -106,3 +106,7 @@ PDC_*manifest*.csv
 PDC_clinical_data_manifests*.zip
 Papers/
 cns_multimodalai_github_starter_pack/
+
+# Local repo setup/helper files
+REPO_SETUP_CARD.md
+setup_repo_structure.sh
