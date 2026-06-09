@@ -3,12 +3,13 @@ Safe result-file access route for CNS-MultiModalAI GUI MVP.
 """
 
 from pathlib import Path
+import os
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-PROJECT_ROOT = Path("/path/to/CNS-MultiModalAI")
-GUI_RUN_ROOT = PROJECT_ROOT / "results" / "gui_mvp_runs"
+PROJECT_ROOT = Path(os.getenv("CNS_PROJECT_ROOT", "/path/to/CNS-MultiModalAI"))
+GUI_RUN_ROOT = Path(os.getenv("CNS_GUI_RUN_ROOT", str(PROJECT_ROOT / "results" / "gui_mvp_runs")))
 
 router = APIRouter(prefix="/api/results", tags=["Results"])
 

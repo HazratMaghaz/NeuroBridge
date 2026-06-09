@@ -6,13 +6,14 @@ GBM/LGG-like similarity, not clinical diagnosis.
 """
 
 from pathlib import Path
+import os
 import sys
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Make frozen Phase 14 package importable.
-PROJECT_ROOT = Path("/path/to/CNS-MultiModalAI")
+PROJECT_ROOT = Path(os.getenv("CNS_PROJECT_ROOT", "/path/to/CNS-MultiModalAI"))
 SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))

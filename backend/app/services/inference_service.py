@@ -9,6 +9,7 @@ GBM/LGG-like similarity, not clinical diagnosis.
 """
 
 from pathlib import Path
+import os
 from datetime import datetime, timezone
 import shutil
 import zipfile
@@ -19,8 +20,8 @@ from fastapi import UploadFile
 
 from cns_multimodalai.inference.predict_from_rna import run_rna_inference
 
-PROJECT_ROOT = Path("/path/to/CNS-MultiModalAI")
-GUI_RUN_ROOT = PROJECT_ROOT / "results" / "gui_mvp_runs"
+PROJECT_ROOT = Path(os.getenv("CNS_PROJECT_ROOT", "/path/to/CNS-MultiModalAI"))
+GUI_RUN_ROOT = Path(os.getenv("CNS_GUI_RUN_ROOT", str(PROJECT_ROOT / "results" / "gui_mvp_runs")))
 
 WARNING_TEXT = (
     "⚠️ RESEARCH PROTOTYPE — output is GBM-like vs LGG-like similarity only. "

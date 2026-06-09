@@ -1,6 +1,7 @@
 from pathlib import Path
+import os
 
-PROJECT_ROOT = Path("/path/to/CNS-MultiModalAI")
+PROJECT_ROOT = Path(os.getenv("CNS_PROJECT_ROOT", "/path/to/CNS-MultiModalAI"))
 
 # Internal reference cohort
 SELECTED_CSV = PROJECT_ROOT / "metadata" / "selected_best_slide_per_patient.csv"
