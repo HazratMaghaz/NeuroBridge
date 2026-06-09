@@ -1,94 +1,62 @@
 """
-CNS-MultiModalAI GUI MVP — FastAPI application entry point.
+FastAPI backend for CNS-MultiModalAI GUI MVP.
 
-⚠️  RESEARCH PROTOTYPE
-This API is a proof-of-concept built during academic thesis research.
-It is NOT validated for clinical use and must NOT be used for patient
-management or medical decision-making.
-
-Usage
------
-    uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
-
-The ``--reload`` flag is for development only; omit it in production.
+Research prototype only:
+GBM/LGG-like similarity, not clinical diagnosis.
 """
 
-import sys
 from pathlib import Path
-
-# ---------------------------------------------------------------------------
-# Make the frozen src package importable when the server is launched from the
-# project root (uvicorn backend.main:app).
-# In production you would install the package via `pip install -e src/` or
-# add it to PYTHONPATH instead.
-# ---------------------------------------------------------------------------
-_SRC = Path(__file__).resolve().parent.parent / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
+import sys
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Make frozen Phase 14 package importable.
+PROJECT_ROOT = Path("/path/to/CNS-MultiModalAI")
+SRC_ROOT = PROJECT_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
 from backend.app.routes import health, infer_rna, infer_patches
-
-# ---------------------------------------------------------------------------
-# Application metadata
-# ---------------------------------------------------------------------------
-_DESCRIPTION = """
-## CNS-MultiModalAI GUI MVP
-
-**⚠️ RESEARCH PROTOTYPE — not for clinical use.**
-
-This REST API exposes the CNS-MultiModalAI inference pipeline for development
-and demonstration purposes.  It accepts RNA-seq expression CSVs and
-histology-patch ZIPs and saves them to run folders under
-`results/gui_mvp_runs/`.
-
-### Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/health` | Service status and project metadata |
-| POST | `/api/infer/rna` | Upload RNA-seq CSV (placeholder inference) |
-| POST | `/api/infer/patches` | Upload patch ZIP (placeholder inference) |
-
-All responses include a `warning` field reiterating the research-prototype
-status of the underlying models.
-"""
 
 app = FastAPI(
     title="CNS-MultiModalAI API",
-    description=_DESCRIPTION,
-    version="0.1.0-mvp",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    description="""
+# CNS-MultiModalAI GUI MVP
+
+⚠️ **RESEARCH PROTOTYPE — not for clinical use.**
+
+This API exposes the CNS-MultiModalAI inference pipeline for academic thesis demonstration.
+
+Outputs are GBM-like vs LGG-like research similarity outputs only.
+""",
+    version="0.1.0",
 )
 
-# ---------------------------------------------------------------------------
-# CORS — allow all origins in the MVP (restrict to the GUI domain in prod)
-# ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      # ← tighten to GUI origin before any deployment
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ---------------------------------------------------------------------------
-# Routers
-# ---------------------------------------------------------------------------
-app.include_router(health.router,        prefix="/api",        tags=["Health"])
-app.include_router(infer_rna.router,     prefix="/api/infer",  tags=["Inference – RNA"])
-app.include_router(infer_patches.router, prefix="/api/infer",  tags=["Inference – Patches"])
+# Important:
+# infer_rna.py and infer_patches.py already define prefix="/api/infer".
+# Therefore, do NOT add prefix="/api/infer" here again.
+app.include_router(health.router, prefix="/api")
+app.include_router(infer_rna.router)
+app.include_router(infer_patches.router)
 
 
-# ---------------------------------------------------------------------------
-# Root redirect to docs
-# ---------------------------------------------------------------------------
-from fastapi.responses import RedirectResponse  # noqa: E402
-
-@app.get("/", include_in_schema=False)
+@app.get("/")
 def root():
-    """Redirect bare root to the interactive API docs."""
-    return RedirectResponse(url="/docs")
+    return {
+        "project": "CNS-MultiModalAI",
+        "status": "ok",
+        "docs": "/docs",
+        "warning": (
+            "Research prototype only. GBM/LGG-like similarity outputs. "
+            "Not a pan-CNS classifier and not for clinical use."
+        ),
+    }

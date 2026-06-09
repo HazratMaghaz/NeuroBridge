@@ -1,44 +1,81 @@
 """
-Inference service — thin wrapper around the frozen cns_multimodalai package.
+Backend service layer for CNS-MultiModalAI GUI MVP.
 
-⚠️  RESEARCH PROTOTYPE — not validated for clinical use.
+This module handles upload saving, safe ZIP extraction, and controlled calls
+to the frozen Phase 14 inference package.
 
-Design intent
--------------
-* All heavy model calls (CTransPath, LightGBM, morphology canvas) are
-  intentionally **commented-out / placeholder** in the MVP.
-* Only file I/O and path management run automatically.
-* When you are ready to enable real inference, uncomment the relevant blocks
-  and ensure the model weights are present at the paths defined in
-  ``src/cns_multimodalai/config.py``.
+Research prototype only:
+GBM/LGG-like similarity, not clinical diagnosis.
 """
 
+from pathlib import Path
+from datetime import datetime, timezone
 import shutil
 import zipfile
-from datetime import datetime, timezone
-from pathlib import Path
+import uuid
 
-# ---------------------------------------------------------------------------
-# Output root for all GUI runs.
-# Must stay under results/ so it lands in the protected data area and is
-# never accidentally deleted by backend refactors.
-# ---------------------------------------------------------------------------
-GUI_RUNS_ROOT = Path("/path/to/CNS-MultiModalAI/results/gui_mvp_runs")
+from fastapi import UploadFile
 
-_WARNING = (
-    "⚠️  RESEARCH PROTOTYPE — output is GBM-like vs LGG-like similarity only. "
+from cns_multimodalai.inference.predict_from_rna import run_rna_inference
+
+PROJECT_ROOT = Path("/path/to/CNS-MultiModalAI")
+GUI_RUN_ROOT = PROJECT_ROOT / "results" / "gui_mvp_runs"
+
+WARNING_TEXT = (
+    "⚠️ RESEARCH PROTOTYPE — output is GBM-like vs LGG-like similarity only. "
     "Not a pan-CNS classifier. Not for clinical use."
 )
 
+RNA_MAX_BYTES = 500 * 1024 * 1024
+PATCH_ZIP_MAX_BYTES = 2 * 1024 * 1024 * 1024
+
+
+def _timestamp() -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _safe_name(name: str) -> str:
+    name = Path(name).name
+    keep = []
+    for ch in name:
+        if ch.isalnum() or ch in {".", "_", "-"}:
+            keep.append(ch)
+        else:
+            keep.append("_")
+    cleaned = "".join(keep).strip("._")
+    return cleaned or f"upload_{uuid.uuid4().hex[:8]}"
+
+
+def _make_run_dir(prefix: str) -> Path:
+    GUI_RUN_ROOT.mkdir(parents=True, exist_ok=True)
+    run_dir = GUI_RUN_ROOT / f"{prefix}_{_timestamp()}_{uuid.uuid4().hex[:6]}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    return run_dir
+
+
+async def _save_upload(file: UploadFile, dest: Path, max_bytes: int) -> int:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    total = 0
+
+    with dest.open("wb") as f:
+        while True:
+            chunk = await file.read(1024 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > max_bytes:
+                raise ValueError(f"Upload too large. Limit is {max_bytes} bytes.")
+            f.write(chunk)
+
+    return total
 
 
 def _safe_extract_zip(zip_path: Path, dest_dir: Path) -> None:
     """
-    Safely extract a ZIP archive while preventing path traversal.
-
-    This prevents files such as ../../evil.py from escaping the run folder.
+    Safely extract ZIP while blocking path traversal.
     """
     dest_dir = Path(dest_dir).resolve()
+
     with zipfile.ZipFile(zip_path) as zf:
         for member in zf.infolist():
             target = (dest_dir / member.filename).resolve()
@@ -46,132 +83,110 @@ def _safe_extract_zip(zip_path: Path, dest_dir: Path) -> None:
                 target.relative_to(dest_dir)
             except ValueError as exc:
                 raise ValueError(f"Unsafe ZIP path blocked: {member.filename}") from exc
+
         zf.extractall(dest_dir)
 
 
-def _make_run_dir(prefix: str) -> Path:
-    """Create a timestamped run directory under GUI_RUNS_ROOT."""
-    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    run_dir = GUI_RUNS_ROOT / f"{prefix}_{ts}"
-    run_dir.mkdir(parents=True, exist_ok=True)
-    return run_dir
-
-
-# ---------------------------------------------------------------------------
-# RNA inference
-# ---------------------------------------------------------------------------
-
-def handle_rna_upload(csv_path: Path) -> dict:
+async def handle_rna_upload(
+    file: UploadFile,
+    run_model: bool = True,
+    make_canvas: bool = False,
+    max_cases: int | None = None,
+) -> dict:
     """
-    Save the uploaded RNA CSV to a dedicated run folder and prepare the
-    inference result envelope.
+    Save uploaded RNA CSV and optionally run real frozen Phase 14 RNA inference.
 
-    Heavy model call is PLACEHOLDER — uncomment when ready.
-
-    Parameters
-    ----------
-    csv_path : Path
-        Temporary path where the uploaded CSV was saved by the route handler.
-
-    Returns
-    -------
-    dict
-        Run metadata including output directory, file paths, and status.
+    Expected CSV:
+    patient_id, ENSG000001..., ENSG000002..., ...
     """
     run_dir = _make_run_dir("rna")
-    dest_csv = run_dir / csv_path.name
-    shutil.copy2(csv_path, dest_csv)
+    filename = _safe_name(file.filename or "rna_upload.csv")
+    input_csv = run_dir / filename
 
-    result = {
+    bytes_saved = await _save_upload(file, input_csv, RNA_MAX_BYTES)
+
+    response = {
         "status": "uploaded",
         "run_dir": str(run_dir),
-        "input_csv": str(dest_csv),
-        "warning": _WARNING,
-        "inference_result": None,  # populated below when inference is enabled
+        "input_csv": str(input_csv),
+        "bytes_saved": bytes_saved,
+        "warning": WARNING_TEXT,
+        "inference_enabled": bool(run_model),
+        "canvas_enabled": bool(make_canvas),
+        "inference_result": None,
     }
 
-    # ------------------------------------------------------------------
-    # ▼▼▼  PLACEHOLDER — uncomment to run RNA inference  ▼▼▼
-    # ------------------------------------------------------------------
-    # from cns_multimodalai.inference.predict_from_rna import run_rna_inference
-    #
-    # inference_result = run_rna_inference(
-    #     expression_csv=dest_csv,
-    #     output_dir=run_dir,
-    #     make_morphology_canvas=False,   # set True to generate morphology canvas
-    #     strategy="log2_fpkm_uq_plus1",
-    # )
-    # result["status"] = "complete"
-    # result["inference_result"] = inference_result
-    # ------------------------------------------------------------------
+    if run_model:
+        try:
+            result = run_rna_inference(
+                expression_csv=input_csv,
+                output_dir=run_dir / "inference",
+                make_morphology_canvas=make_canvas,
+                max_cases=max_cases,
+            )
 
-    return result
+            response["status"] = "completed"
+            response["inference_result"] = result
+
+            pred_csv = Path(result["predictions_csv"])
+            if pred_csv.exists():
+                import pandas as pd
+
+                pred_df = pd.read_csv(pred_csv)
+                cols = [
+                    c for c in [
+                        "patient_id",
+                        "prob_GBM_like",
+                        "predicted_label",
+                        "predicted_class",
+                        "expression_strategy",
+                        "shared_gene_count",
+                        "selected_gene_count",
+                    ]
+                    if c in pred_df.columns
+                ]
+
+                response["prediction_preview"] = pred_df[cols].head(10).to_dict(orient="records")
+
+        except Exception as e:
+            response["status"] = "failed"
+            response["error"] = repr(e)
+
+    return response
 
 
-# ---------------------------------------------------------------------------
-# Patch-based inference
-# ---------------------------------------------------------------------------
-
-def handle_patch_upload(zip_path: Path) -> dict:
+async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict:
     """
-    Extract the uploaded patch ZIP to a dedicated run folder and prepare the
-    inference result envelope.
+    Save and safely extract uploaded patch ZIP.
 
-    Heavy model call is PLACEHOLDER — uncomment when ready.
-
-    Parameters
-    ----------
-    zip_path : Path
-        Temporary path where the uploaded ZIP was saved by the route handler.
-
-    Returns
-    -------
-    dict
-        Run metadata including output directory, extracted patch directory,
-        and status.
+    Real patch inference is intentionally disabled by default in GUI MVP step 1.
     """
     run_dir = _make_run_dir("patches")
+    filename = _safe_name(file.filename or "patches.zip")
+
+    if not filename.lower().endswith(".zip"):
+        raise ValueError("Patch upload must be a .zip archive.")
+
+    zip_path = run_dir / filename
     patch_dir = run_dir / "patches"
+
+    bytes_saved = await _save_upload(file, zip_path, PATCH_ZIP_MAX_BYTES)
     patch_dir.mkdir(parents=True, exist_ok=True)
 
     _safe_extract_zip(zip_path, patch_dir)
 
-    # Count extracted images for a quick sanity check
-    image_extensions = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
-    n_images = sum(
-        1 for p in patch_dir.rglob("*") if p.suffix.lower() in image_extensions
-    )
+    image_exts = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".webp"}
+    n_images = sum(1 for p in patch_dir.rglob("*") if p.is_file() and p.suffix.lower() in image_exts)
 
-    result = {
+    return {
         "status": "uploaded",
         "run_dir": str(run_dir),
+        "zip_path": str(zip_path),
         "patch_dir": str(patch_dir),
+        "bytes_saved": bytes_saved,
         "n_images_found": n_images,
-        "warning": _WARNING,
-        "inference_result": None,  # populated below when inference is enabled
+        "warning": WARNING_TEXT,
+        "inference_enabled": bool(run_model),
+        "inference_result": None,
+        "note": "Patch model inference is still disabled in this backend step. Enable after RNA endpoint is stable.",
     }
-
-    if n_images == 0:
-        result["status"] = "error"
-        result["detail"] = (
-            "No image files found in the uploaded ZIP. "
-            "Expected .jpg/.jpeg/.png/.tif/.tiff files."
-        )
-        return result
-
-    # ------------------------------------------------------------------
-    # ▼▼▼  PLACEHOLDER — uncomment to run patch-based inference  ▼▼▼
-    # ------------------------------------------------------------------
-    # from cns_multimodalai.inference.predict_from_patches import (
-    #     predict_from_patch_folder,
-    # )
-    #
-    # inference_result, emb, clf_pack = predict_from_patch_folder(
-    #     patch_dir=patch_dir,
-    #     output_dir=run_dir,
-    # )
-    # result["status"] = "complete"
-    # result["inference_result"] = inference_result
-    # ------------------------------------------------------------------
-
-    return result
