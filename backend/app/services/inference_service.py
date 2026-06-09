@@ -19,6 +19,7 @@ from urllib.parse import quote
 from fastapi import UploadFile
 
 from cns_multimodalai.inference.predict_from_rna import run_rna_inference
+from cns_multimodalai.inference.predict_from_patches import predict_from_patch_folder
 
 PROJECT_ROOT = Path(os.getenv("CNS_PROJECT_ROOT", "/path/to/CNS-MultiModalAI"))
 GUI_RUN_ROOT = Path(os.getenv("CNS_GUI_RUN_ROOT", str(PROJECT_ROOT / "results" / "gui_mvp_runs")))
@@ -203,7 +204,8 @@ async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict
     """
     Save and safely extract uploaded patch ZIP.
 
-    Real patch inference is intentionally disabled by default in GUI MVP step 1.
+    If run_model=True, run frozen Phase 14 patch-folder inference:
+    patch images -> CTransPath embeddings -> GBM/LGG-like prediction -> report files.
     """
     run_dir = _make_run_dir("patches")
     filename = _safe_name(file.filename or "patches.zip")
@@ -220,9 +222,12 @@ async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict
     _safe_extract_zip(zip_path, patch_dir)
 
     image_exts = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".webp"}
-    n_images = sum(1 for p in patch_dir.rglob("*") if p.is_file() and p.suffix.lower() in image_exts)
+    n_images = sum(
+        1 for p in patch_dir.rglob("*")
+        if p.is_file() and p.suffix.lower() in image_exts
+    )
 
-    return {
+    response = {
         "status": "uploaded",
         "run_dir": str(run_dir),
         "zip_path": str(zip_path),
@@ -232,5 +237,66 @@ async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict
         "warning": WARNING_TEXT,
         "inference_enabled": bool(run_model),
         "inference_result": None,
-        "note": "Patch model inference is still disabled in this backend step. Enable after RNA endpoint is stable.",
+        "prediction_preview": None,
+        "result_files": None,
     }
+
+    if n_images == 0:
+        response["status"] = "failed"
+        response["error"] = "No patch images found in uploaded ZIP. Expected PNG/JPG/TIF/WEBP files."
+        return response
+
+    if run_model:
+        try:
+            output_dir = run_dir / "inference"
+            result, emb, clf_pack = predict_from_patch_folder(
+                patch_dir=patch_dir,
+                output_dir=output_dir,
+            )
+
+            response["status"] = "completed"
+            response["inference_result"] = result
+
+            pred_csv = output_dir / "patch_folder_prediction.csv"
+            emb_csv = output_dir / "patch_folder_mean_embedding.csv"
+            report_md = output_dir / "patch_inference_report.md"
+
+            # If the frozen function did not write a markdown report, create a small backend report.
+            if not report_md.exists():
+                report_md.write_text(
+                    "# CNS-MultiModalAI Patch Inference Report\n\n"
+                    "## Prediction summary\n\n"
+                    f"- Input type: patch ZIP / extracted patch folder\n"
+                    f"- Number of patch images found: {n_images}\n"
+                    f"- Number of patches used by model: {result.get('n_patches')}\n"
+                    f"- Predicted class: {result.get('predicted_class')}\n"
+                    f"- Probability GBM-like: {result.get('prob_GBM_like')}\n\n"
+                    "## Important note\n\n"
+                    "This is a research prototype. The output is GBM-like vs LGG-like similarity only. "
+                    "It is not a pan-CNS classifier and not intended for clinical diagnosis.\n"
+                )
+
+            response["prediction_preview"] = {
+                "predicted_class": result.get("predicted_class"),
+                "prob_GBM_like": result.get("prob_GBM_like"),
+                "predicted_label": result.get("predicted_label"),
+                "n_patches": result.get("n_patches"),
+                "train_accuracy_internal": result.get("train_accuracy_internal"),
+                "train_balanced_accuracy_internal": result.get("train_balanced_accuracy_internal"),
+            }
+
+            response["result_files"] = {
+                "prediction_url": _result_file_url(pred_csv, run_dir) if pred_csv.exists() else None,
+                "embedding_url": _result_file_url(emb_csv, run_dir) if emb_csv.exists() else None,
+                "report_url": _result_file_url(report_md, run_dir) if report_md.exists() else None,
+            }
+
+        except Exception as e:
+            response["status"] = "failed"
+            response["error"] = repr(e)
+
+    else:
+        response["note"] = "Patch ZIP uploaded and extracted. Set run_model=true to run patch inference."
+
+    return response
+

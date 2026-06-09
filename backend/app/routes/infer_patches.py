@@ -12,13 +12,12 @@ router = APIRouter(prefix="/api/infer", tags=["Inference – Patches"])
 @router.post("/patches")
 async def infer_patches(
     file: UploadFile = File(..., description="ZIP archive of patch images"),
-    run_model: bool = Form(False, description="Reserved for later patch model inference"),
+    run_model: bool = Form(False, description="Run real frozen Phase 14 patch inference"),
 ):
     """
     Upload a ZIP archive of histology patch images.
 
-    For now, this endpoint safely saves and extracts patches. Real CTransPath/GPU
-    inference remains disabled until RNA endpoint is fully stable.
+    This endpoint safely saves/extracts patches. If run_model=true, it runs the frozen CTransPath patch inference pipeline.
     """
     try:
         return await handle_patch_upload(file=file, run_model=run_model)
