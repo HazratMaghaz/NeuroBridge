@@ -1,0 +1,9 @@
+# CNS-MultiModalAI GUI MVP — backend dependencies
+#
+# Pin minor versions so the environment is reproducible.
+# Install with:
+#   pip install -r backend/requirements.txt
+
+fastapi>=0.111.0,<0.112
+uvicorn[standard]>=0.29.0,<0.30
+python-multipart>=0.0.9,<0.1   # required by FastAPI for file uploads
