@@ -5,6 +5,7 @@ import WarningBanner from "@/components/WarningBanner";
 import RnaUpload, { type RnaApiResponse } from "@/components/RnaUpload";
 import ResultCard from "@/components/ResultCard";
 import CanvasViewer from "@/components/CanvasViewer";
+import PatchUpload, { type PatchApiResponse } from "@/components/PatchUpload";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -57,75 +58,6 @@ function BackendStatus({ health, onRefresh }: { health: HealthInfo; onRefresh: (
   );
 }
 
-// ── Patch upload placeholder card ─────────────────────────────────────────
-
-function PatchUploadPlaceholder() {
-  return (
-    <div style={{ position: "relative" }}>
-      {/* Disabled overlay */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          zIndex: 2,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-          borderRadius: "var(--r-lg)",
-          background: "rgba(11,15,26,0.50)",
-          backdropFilter: "blur(2px)",
-          cursor: "not-allowed",
-        }}
-        title="Patch model inference is not yet enabled"
-        aria-disabled="true"
-      >
-        <span
-          style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-bright)",
-            borderRadius: "var(--r-sm)",
-            padding: "6px 14px",
-            fontSize: "0.80rem",
-            color: "var(--text-secondary)",
-            fontWeight: 600,
-          }}
-        >
-          🔒 Coming next: patch ZIP inference
-        </span>
-        <span style={{ fontSize: "0.70rem", color: "var(--text-muted)" }}>
-          CTransPath feature extraction not yet wired
-        </span>
-      </div>
-
-      {/* Card body (visually dimmed) */}
-      <div
-        className="card"
-        style={{ opacity: 0.38, pointerEvents: "none", filter: "grayscale(0.4)" }}
-      >
-        <div className="card-title">🔬 Patch Image Inference</div>
-        <p className="card-desc">
-          Upload a ZIP archive of histology patch images (224×224 px).
-          The backend will extract features using CTransPath and classify
-          GBM-like vs LGG-like morphology.
-        </p>
-        <div className="upload-zone">
-          <div className="upload-icon">🗜️</div>
-          <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-            Drag &amp; drop or browse for a ZIP
-          </div>
-          <div className="upload-hint">.jpg/.png patches · max 2 GB</div>
-        </div>
-        <div className="btn-row">
-          <button className="btn btn-primary" disabled>
-            ▶ Run Patch Analysis
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ── Home page ─────────────────────────────────────────────────────────────
 
@@ -167,8 +99,16 @@ export default function HomePage() {
   /** Called by RnaUpload on success — also confirms backend is alive. */
   function handleResult(data: RnaApiResponse) {
     setResult(data);
-    setHealth({ state: "connected", label: "Backend connected", detail: "Inference completed" });
+    setHealth({ state: "connected", label: "Backend connected", detail: "RNA inference completed" });
   }
+
+  /** Called by PatchUpload on success — updates health indicator only.
+   *  The patch result card is rendered self-contained inside PatchUpload. */
+  function handlePatchResult(_data: PatchApiResponse) {
+    setHealth({ state: "connected", label: "Backend connected", detail: "Patch inference completed" });
+  }
+
+
 
   const canvasFiles = result?.result_files?.canvas_files ?? [];
   const hasCanvas = canvasFiles.length > 0;
@@ -199,7 +139,7 @@ export default function HomePage() {
       <div className="section-label">Upload &amp; Analyse</div>
       <div className="dash-grid">
         <RnaUpload onResult={handleResult} />
-        <PatchUploadPlaceholder />
+        <PatchUpload onResult={handlePatchResult} />
       </div>
 
       {/* ── Results section ──────────────────────────────────────────────── */}
