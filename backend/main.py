@@ -17,7 +17,7 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from backend.app.routes import health, infer_rna, infer_patches
+from backend.app.routes import health, infer_rna, infer_patches, results
 
 app = FastAPI(
     title="CNS-MultiModalAI API",
@@ -47,6 +47,7 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api")
 app.include_router(infer_rna.router)
 app.include_router(infer_patches.router)
+app.include_router(results.router)
 
 
 @app.get("/")
