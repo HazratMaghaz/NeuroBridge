@@ -111,3 +111,13 @@ cns_multimodalai_github_starter_pack/
 REPO_SETUP_CARD.md
 setup_repo_structure.sh
 *.py[cod]
+
+# Frontend / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
+frontend/.env*.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
