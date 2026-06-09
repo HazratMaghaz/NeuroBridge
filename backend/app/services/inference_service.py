@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 import shutil
 import zipfile
 import uuid
+from urllib.parse import quote
 
 from fastapi import UploadFile
 
@@ -68,6 +69,27 @@ async def _save_upload(file: UploadFile, dest: Path, max_bytes: int) -> int:
             f.write(chunk)
 
     return total
+
+
+
+
+def _result_file_url(file_path: str | Path, run_dir: Path) -> str | None:
+    """
+    Convert an absolute result file path into a frontend-accessible API URL.
+    """
+    if not file_path:
+        return None
+
+    file_path = Path(file_path)
+    run_dir = Path(run_dir)
+
+    try:
+        rel = file_path.resolve().relative_to(run_dir.resolve()).as_posix()
+    except Exception:
+        return None
+
+    run_id = run_dir.name
+    return f"/api/results/{run_id}/file?relative_path={quote(rel, safe='/')}"
 
 
 def _safe_extract_zip(zip_path: Path, dest_dir: Path) -> None:
@@ -147,6 +169,27 @@ async def handle_rna_upload(
                 ]
 
                 response["prediction_preview"] = pred_df[cols].head(10).to_dict(orient="records")
+
+            # Frontend-ready result URLs
+            result_files = {
+                "predictions_url": _result_file_url(result.get("predictions_csv"), run_dir),
+                "report_url": _result_file_url(result.get("report_md"), run_dir),
+                "canvas_index_url": _result_file_url(result.get("canvas_index_csv"), run_dir),
+                "canvas_files": [],
+            }
+
+            canvas_index_csv = result.get("canvas_index_csv")
+            if canvas_index_csv and Path(canvas_index_csv).exists():
+                canvas_df = pd.read_csv(canvas_index_csv)
+                for _, row in canvas_df.iterrows():
+                    result_files["canvas_files"].append({
+                        "patient_id": row.get("patient_id"),
+                        "canvas_url": _result_file_url(row.get("canvas_path"), run_dir),
+                        "retrieval_csv_url": _result_file_url(row.get("retrieval_csv"), run_dir),
+                        "note": row.get("note"),
+                    })
+
+            response["result_files"] = result_files
 
         except Exception as e:
             response["status"] = "failed"
