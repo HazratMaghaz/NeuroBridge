@@ -1,12 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import WarningBanner from "@/components/WarningBanner";
 import RnaUpload, { type RnaApiResponse } from "@/components/RnaUpload";
 import ResultCard from "@/components/ResultCard";
 import CanvasViewer from "@/components/CanvasViewer";
 
-/** Patch upload placeholder — heavy model is NOT connected. */
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+
+// ── Backend health types ──────────────────────────────────────────────────
+
+type HealthState = "checking" | "connected" | "offline";
+
+interface HealthInfo {
+  state: HealthState;
+  label: string;
+  detail?: string;
+}
+
+// ── Backend status indicator component ────────────────────────────────────
+
+function BackendStatus({ health, onRefresh }: { health: HealthInfo; onRefresh: () => void }) {
+  const color =
+    health.state === "connected" ? "var(--green-500)"
+    : health.state === "offline"  ? "var(--red-500)"
+    : "var(--amber-500)";
+
+  return (
+    <div className={`status-bar ${health.state}`} role="status" aria-live="polite">
+      <span className={`status-dot ${health.state}`} aria-hidden="true" />
+      <span style={{ color }}>{health.label}</span>
+      {health.detail && (
+        <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>
+          &mdash; {health.detail}
+        </span>
+      )}
+      <button
+        onClick={onRefresh}
+        style={{
+          marginLeft: "auto",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontSize: "0.70rem",
+          color: "var(--text-muted)",
+          padding: "0 2px",
+          lineHeight: 1,
+        }}
+        aria-label="Re-check backend connection"
+        title="Re-check backend"
+      >
+        ↺
+      </button>
+    </div>
+  );
+}
+
+// ── Patch upload placeholder card ─────────────────────────────────────────
+
 function PatchUploadPlaceholder() {
   return (
     <div style={{ position: "relative" }}>
@@ -17,10 +69,12 @@ function PatchUploadPlaceholder() {
           inset: 0,
           zIndex: 2,
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
+          gap: 8,
           borderRadius: "var(--r-lg)",
-          background: "rgba(11,15,26,0.45)",
+          background: "rgba(11,15,26,0.50)",
           backdropFilter: "blur(2px)",
           cursor: "not-allowed",
         }}
@@ -33,17 +87,23 @@ function PatchUploadPlaceholder() {
             border: "1px solid var(--border-bright)",
             borderRadius: "var(--r-sm)",
             padding: "6px 14px",
-            fontSize: "0.78rem",
-            color: "var(--text-muted)",
-            fontWeight: 500,
+            fontSize: "0.80rem",
+            color: "var(--text-secondary)",
+            fontWeight: 600,
           }}
         >
-          🔒 Patch model — coming in next step
+          🔒 Coming next: patch ZIP inference
+        </span>
+        <span style={{ fontSize: "0.70rem", color: "var(--text-muted)" }}>
+          CTransPath feature extraction not yet wired
         </span>
       </div>
 
       {/* Card body (visually dimmed) */}
-      <div className="card" style={{ opacity: 0.45, pointerEvents: "none", filter: "grayscale(0.3)" }}>
+      <div
+        className="card"
+        style={{ opacity: 0.38, pointerEvents: "none", filter: "grayscale(0.4)" }}
+      >
         <div className="card-title">🔬 Patch Image Inference</div>
         <p className="card-desc">
           Upload a ZIP archive of histology patch images (224×224 px).
@@ -67,25 +127,47 @@ function PatchUploadPlaceholder() {
   );
 }
 
+// ── Home page ─────────────────────────────────────────────────────────────
+
 export default function HomePage() {
   const [result, setResult] = useState<RnaApiResponse | null>(null);
-  const [healthStatus, setHealthStatus] = useState<string | null>(null);
+  const [health, setHealth] = useState<HealthInfo>({
+    state: "checking",
+    label: "Checking backend…",
+  });
 
-  /** Ping the backend health endpoint */
-  async function checkHealth() {
+  /** Ping GET /api/health and update the status indicator. */
+  const checkHealth = useCallback(async () => {
+    setHealth((h) => ({ ...h, state: "checking", label: "Checking backend…" }));
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000"}/api/health`
-      );
+      const res = await fetch(`${API_BASE}/api/health`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setHealthStatus(
-        data.status === "ok"
-          ? `✓ Backend OK — ${data.project ?? "CNS-MultiModalAI"} v${data.version ?? "?"}`
-          : "Backend returned unexpected status"
-      );
+      setHealth({
+        state: "connected",
+        label: "Backend connected",
+        detail: `${data.project ?? "CNS-MultiModalAI"} v${data.version ?? "?"}`,
+      });
     } catch {
-      setHealthStatus("✗ Backend unreachable — is uvicorn running on port 8000?");
+      setHealth({
+        state: "offline",
+        label: "Backend offline",
+        detail: "Start uvicorn on port 8000",
+      });
     }
+  }, []);
+
+  // Auto-check on mount; re-check every 30 s.
+  useEffect(() => {
+    checkHealth();
+    const id = setInterval(checkHealth, 30_000);
+    return () => clearInterval(id);
+  }, [checkHealth]);
+
+  /** Called by RnaUpload on success — also confirms backend is alive. */
+  function handleResult(data: RnaApiResponse) {
+    setResult(data);
+    setHealth({ state: "connected", label: "Backend connected", detail: "Inference completed" });
   }
 
   const canvasFiles = result?.result_files?.canvas_files ?? [];
@@ -94,7 +176,8 @@ export default function HomePage() {
 
   return (
     <main className="page-wrapper">
-      {/* ── Topbar ─────────────────────────────────────────────────────── */}
+
+      {/* ── Topbar ──────────────────────────────────────────────────────── */}
       <header className="topbar">
         <div className="topbar-brand">
           <div className="topbar-dot" aria-hidden="true" />
@@ -103,41 +186,23 @@ export default function HomePage() {
             <div className="topbar-subtitle">PhD thesis GUI · research prototype</div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span className="topbar-badge">MVP v0.1</span>
-          <button
-            id="btn-health-check"
-            className="btn btn-ghost"
-            style={{ padding: "5px 12px", fontSize: "0.75rem" }}
-            onClick={checkHealth}
-          >
-            Ping API
-          </button>
-        </div>
+        <span className="topbar-badge">MVP v0.1</span>
       </header>
 
-      {/* Health status toast */}
-      {healthStatus && (
-        <div
-          className="info-box info"
-          style={{ marginBottom: 16, fontSize: "0.78rem" }}
-          role="status"
-        >
-          {healthStatus}
-        </div>
-      )}
+      {/* ── Backend status indicator (auto-polls every 30 s) ─────────────── */}
+      <BackendStatus health={health} onRefresh={checkHealth} />
 
-      {/* ── Warning banner ─────────────────────────────────────────────── */}
+      {/* ── Research warning banner ──────────────────────────────────────── */}
       <WarningBanner />
 
-      {/* ── Upload panels (2-col grid) ──────────────────────────────────── */}
+      {/* ── Upload panels ────────────────────────────────────────────────── */}
       <div className="section-label">Upload &amp; Analyse</div>
       <div className="dash-grid">
-        <RnaUpload onResult={setResult} />
+        <RnaUpload onResult={handleResult} />
         <PatchUploadPlaceholder />
       </div>
 
-      {/* ── Results section ─────────────────────────────────────────────── */}
+      {/* ── Results section ──────────────────────────────────────────────── */}
       {hasResult && (
         <>
           <div className="divider" />
@@ -150,33 +215,26 @@ export default function HomePage() {
               <div className="section-label" style={{ marginTop: 24 }}>
                 Morphology Canvas
               </div>
-              <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-                <div style={{ padding: "16px 24px 0" }}>
-                  <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginBottom: 12 }}>
-                    The canvas below shows real histology patches retrieved from the
-                    internal training cohort that are most morphologically similar to
-                    this patient's predicted image embedding. It is retrieval-based —
-                    not the patient's own WSI.
-                  </p>
-                </div>
-                <div style={{ padding: "0 24px 24px" }}>
-                  <CanvasViewer canvasFiles={canvasFiles} />
-                </div>
+              <div className="card" style={{ padding: "20px 24px 24px" }}>
+                <CanvasViewer canvasFiles={canvasFiles} />
               </div>
             </>
           )}
 
-          {/* No canvas message */}
+          {/* Canvas enabled but no files returned */}
           {!hasCanvas && result.status === "completed" && result.canvas_enabled && (
             <>
-              <div className="section-label" style={{ marginTop: 24 }}>Morphology Canvas</div>
+              <div className="section-label" style={{ marginTop: 24 }}>
+                Morphology Canvas
+              </div>
               <div className="info-box info">
-                Canvas was enabled but no canvas files were returned. Check backend logs.
+                Canvas was enabled but no canvas files were returned. Check
+                backend logs for errors in the morphology retrieval step.
               </div>
             </>
           )}
 
-          {/* Run metadata */}
+          {/* Raw run metadata — collapsible */}
           <details style={{ marginTop: 20 }}>
             <summary
               style={{
@@ -212,27 +270,23 @@ export default function HomePage() {
         </>
       )}
 
-      {/* ── Footer ──────────────────────────────────────────────────────── */}
-      <footer
-        style={{
-          marginTop: 48,
-          paddingTop: 20,
-          borderTop: "1px solid var(--border)",
-          fontSize: "0.72rem",
-          color: "var(--text-muted)",
-          textAlign: "center",
-        }}
-      >
-        CNS-MultiModalAI GUI MVP · Research prototype · Not for clinical use ·{" "}
-        <a
-          href="http://127.0.0.1:8000/docs"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: "var(--teal-400)", textDecoration: "none" }}
-        >
-          API Docs ↗
-        </a>
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
+      <footer className="footer-note">
+        <div>
+          CNS-MultiModalAI GUI MVP &nbsp;·&nbsp;{" "}
+          <a href={`${API_BASE}/docs`} target="_blank" rel="noopener noreferrer">
+            API Docs ↗
+          </a>
+          &nbsp;·&nbsp;{" "}
+          <a href={`${API_BASE}/api/health`} target="_blank" rel="noopener noreferrer">
+            Health ↗
+          </a>
+        </div>
+        <div className="footer-prototype-badge">
+          Research prototype · GBM/LGG-like similarity only · Not for clinical use
+        </div>
       </footer>
+
     </main>
   );
 }

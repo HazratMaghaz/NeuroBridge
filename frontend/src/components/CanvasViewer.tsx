@@ -74,6 +74,17 @@ export default function CanvasViewer({ canvasFiles }: Props) {
           )}
         </div>
 
+        {/* Retrieval explanation — always visible when canvas is shown */}
+        <div className="canvas-retrieval-note">
+          <span style={{ fontSize: "1rem", flexShrink: 0 }}>🔬</span>
+          <span>
+            <strong>This canvas is retrieved from real histology patches.</strong>{" "}
+            It is not a true WSI reconstruction — patches are selected from the
+            internal training cohort based on predicted image-embedding similarity.
+            For research interpretation only.
+          </span>
+        </div>
+
         {/* Canvas image */}
         <div className="canvas-img-wrap">
           {imgUrl ? (
@@ -91,7 +102,7 @@ export default function CanvasViewer({ canvasFiles }: Props) {
           )}
         </div>
 
-        {/* Retrieval note */}
+        {/* Retrieval note from backend (italicised caption) */}
         {active.note && (
           <div className="canvas-note">{active.note}</div>
         )}

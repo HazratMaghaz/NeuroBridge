@@ -47,6 +47,19 @@ interface Props {
   onResult: (data: RnaApiResponse) => void;
 }
 
+/** Returns true if the message looks like a network/CORS failure rather than
+ *  a backend application error. */
+function isNetworkError(msg: string): boolean {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes("failed to fetch") ||
+    lower.includes("networkerror") ||
+    lower.includes("cors") ||
+    lower.includes("econnrefused") ||
+    lower.includes("load failed")
+  );
+}
+
 export default function RnaUpload({ onResult }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [runModel, setRunModel] = useState(true);
@@ -98,7 +111,6 @@ export default function RnaUpload({ onResult }: Props) {
       const data: RnaApiResponse = await res.json();
 
       if (!res.ok) {
-        // FastAPI 400 etc — detail field
         const detail = (data as unknown as { detail?: string }).detail;
         throw new Error(detail ?? `HTTP ${res.status}`);
       }
@@ -211,9 +223,34 @@ export default function RnaUpload({ onResult }: Props) {
         </div>
       </form>
 
-      {error && (
-        <div className="info-box" style={{ marginTop: 14 }} role="alert">
-          {error}
+      {/* Loading progress banner */}
+      {loading && (
+        <div className="loading-banner" role="status" aria-live="polite">
+          <span className="spinner" style={{ marginTop: 2, flexShrink: 0 }} />
+          <div className="loading-banner-body">
+            <div className="loading-banner-title">Running RNA inference…</div>
+            <div className="loading-banner-sub">
+              Running RNA inference and morphology retrieval. This may take
+              1–3&nbsp;minutes depending on canvas generation. Please keep
+              this tab open.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clean error card — technical detail hidden in collapsible */}
+      {error && !loading && (
+        <div className="error-card" role="alert">
+          <div className="error-card-title">⚠ Request failed</div>
+          <div className="error-card-hint">
+            {isNetworkError(error)
+              ? "Could not reach the backend. Make sure uvicorn is running on port 8000 and CORS is enabled."
+              : "The backend returned an error. See technical details below."}
+          </div>
+          <details>
+            <summary>Technical details</summary>
+            <pre>{error}</pre>
+          </details>
         </div>
       )}
     </div>
