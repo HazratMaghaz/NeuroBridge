@@ -5,11 +5,12 @@ import type { RnaApiResponse, PredictionRow, CanvasFile, ClinicalRelevance } fro
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
-/** Prefix a backend-relative URL with the API base. */
 function absUrl(rel?: string | null): string | null {
   if (!rel) return null;
   return `${API_BASE}${rel}`;
 }
+
+// ── Prob bar ──────────────────────────────────────────────────────────────
 
 function probBar(prob: number) {
   const pct = Math.round(prob * 100);
@@ -18,11 +19,10 @@ function probBar(prob: number) {
     <div style={{ marginTop: 6 }}>
       <div
         style={{
-          height: 6,
+          height: 5,
           borderRadius: 99,
-          background: "var(--bg-surface)",
+          background: "var(--bg-base)",
           overflow: "hidden",
-          border: "1px solid var(--border)",
         }}
       >
         <div
@@ -35,13 +35,34 @@ function probBar(prob: number) {
           }}
         />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 3 }}>
-        <span>LGG-like</span>
-        <span>GBM-like</span>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          fontSize: "0.66rem",
+          color: "var(--text-muted)",
+          marginTop: 3,
+        }}
+      >
+        <span>LGG-like ◀</span>
+        <span>▶ GBM-like</span>
       </div>
     </div>
   );
 }
+
+// ── Section header ────────────────────────────────────────────────────────
+
+function SectionHeader({ num, title }: { num: string; title: string }) {
+  return (
+    <div className="report-section-header">
+      <div className="report-section-num">{num}</div>
+      <div className="report-section-title">{title}</div>
+    </div>
+  );
+}
+
+// ── Full prediction table ─────────────────────────────────────────────────
 
 function PredictionTable({ rows }: { rows: PredictionRow[] }) {
   return (
@@ -61,7 +82,13 @@ function PredictionTable({ rows }: { rows: PredictionRow[] }) {
             <tr key={i}>
               <td>{row.patient_id ?? "—"}</td>
               <td>
-                <span className={row.predicted_class?.toLowerCase().includes("gbm") ? "class-gbm" : "class-lgg"}>
+                <span
+                  className={
+                    row.predicted_class?.toLowerCase().includes("gbm")
+                      ? "class-gbm"
+                      : "class-lgg"
+                  }
+                >
                   {row.predicted_class ?? "—"}
                 </span>
               </td>
@@ -80,35 +107,27 @@ function PredictionTable({ rows }: { rows: PredictionRow[] }) {
   );
 }
 
-function ClinicalRelevancePanel({ cr, label }: { cr: ClinicalRelevance; label?: string }) {
+// ── Clinical / Research Relevance ─────────────────────────────────────────
+
+function ClinicalRelevancePanel({ cr }: { cr: ClinicalRelevance }) {
   const isGbm = cr.predicted_class?.toLowerCase().includes("gbm");
   const dirColor = isGbm ? "var(--amber-500)" : "var(--teal-400)";
-  return (
-    <div
-      style={{
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-md)",
-        padding: "14px 18px",
-        marginTop: 16,
-      }}
-    >
-      <div className="stat-label" style={{ marginBottom: 10, fontSize: "0.72rem" }}>
-        {label ?? "Clinical / Research Relevance"}
-      </div>
 
-      {/* Direction badge */}
+  return (
+    <div className="report-section">
+      <SectionHeader num="2" title="Clinical / Research Relevance" />
+
       {cr.research_direction && (
         <div
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 6,
+            gap: 7,
             background: isGbm ? "var(--amber-bg)" : "var(--teal-glow)",
-            border: `1px solid ${isGbm ? "rgba(245,158,11,0.30)" : "rgba(20,184,166,0.30)"}`,
+            border: `1px solid ${isGbm ? "rgba(245,158,11,0.28)" : "rgba(20,184,166,0.28)"}`,
             borderRadius: "var(--r-sm)",
-            padding: "4px 10px",
-            fontSize: "0.78rem",
+            padding: "5px 12px",
+            fontSize: "0.80rem",
             fontWeight: 600,
             color: dirColor,
             marginBottom: 10,
@@ -118,15 +137,20 @@ function ClinicalRelevancePanel({ cr, label }: { cr: ClinicalRelevance; label?: 
         </div>
       )}
 
-      {/* Research summary */}
       {cr.research_summary && (
-        <p style={{ fontSize: "0.79rem", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 8 }}>
+        <p
+          style={{
+            fontSize: "0.79rem",
+            color: "var(--text-secondary)",
+            lineHeight: 1.65,
+            marginBottom: 10,
+          }}
+        >
           {cr.research_summary}
         </p>
       )}
 
-      {/* Model scope + caution */}
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 6 }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-start" }}>
         {cr.model_scope && (
           <span
             style={{
@@ -136,127 +160,89 @@ function ClinicalRelevancePanel({ cr, label }: { cr: ClinicalRelevance; label?: 
               border: "1px solid var(--border)",
               borderRadius: "var(--r-sm)",
               padding: "2px 8px",
+              flexShrink: 0,
             }}
           >
             Scope: {cr.model_scope}
           </span>
         )}
         {cr.caution && (
-          <span style={{ fontSize: "0.70rem", color: "var(--text-muted)", fontStyle: "italic", flex: 1 }}>
+          <div
+            className="caution-strip"
+            style={{ flex: 1, marginBottom: 0 }}
+          >
             ⚠ {cr.caution}
-          </span>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-interface Props {
-  data: RnaApiResponse;
-}
+// ── Grouped downloads ─────────────────────────────────────────────────────
 
-export default function ResultCard({ data }: Props) {
-  const preview = data.prediction_preview ?? [];
-  const files = data.result_files;
-  const firstRow: PredictionRow | undefined = preview[0];
-
-  const statusClass =
-    data.status === "completed" ? "pill-success"
-    : data.status === "failed"   ? "pill-error"
-    : "pill-running";
-
-  const statusLabel =
-    data.status === "completed" ? "✓ Completed"
-    : data.status === "failed"   ? "✗ Failed"
-    : "⟳ Uploaded";
-
+function DownloadsSection({
+  files,
+}: {
+  files: NonNullable<RnaApiResponse["result_files"]>;
+}) {
   return (
-    <div className="card" id="result-card">
-      {/* Header row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-        <span className={`pill ${statusClass}`}>{statusLabel}</span>
-        {data.canvas_enabled && (
-          <span className="pill pill-dim">Canvas enabled</span>
-        )}
-        {data.inference_enabled && (
-          <span className="pill pill-dim">Model: Phase 14 RNA</span>
-        )}
+    <div className="report-section">
+      <SectionHeader num={files.canvas_files && files.canvas_files.length > 0 ? "3" : "3"} title="Downloads" />
+
+      {/* Main downloads */}
+      <div className="dl-group" style={{ marginBottom: 14 }}>
+        <div className="dl-group-label">Main results</div>
+        <div className="dl-group-links">
+          {files.report_url && (
+            <a
+              className="dl-link dl-link-primary"
+              href={absUrl(files.report_url) ?? "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              id="dl-report"
+            >
+              📄 Inference Report
+            </a>
+          )}
+          {files.predictions_url && (
+            <a
+              className="dl-link dl-link-primary"
+              href={absUrl(files.predictions_url) ?? "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              id="dl-predictions"
+            >
+              ⬇ Predictions CSV
+            </a>
+          )}
+        </div>
       </div>
 
-      {/* Error box */}
-      {data.status === "failed" && data.error && (
-        <div className="info-box" style={{ marginBottom: 14 }} role="alert">
-          {data.error}
-        </div>
-      )}
-
-      {/* Warning from backend */}
-      {data.warning && (
-        <div className="warning-banner" style={{ marginBottom: 16 }}>
-          <span className="warning-icon">⚠️</span>
-          <p className="warning-text" style={{ fontSize: "0.75rem" }}>{data.warning}</p>
-        </div>
-      )}
-
-      {/* Summary stat blocks — first row */}
-      {firstRow && (
-        <>
-          <div className="result-grid">
-            <div className="stat-block">
-              <div className="stat-label">Patient ID</div>
-              <div className="stat-value" style={{ fontSize: "1rem", fontFamily: "var(--font-mono)" }}>
-                {firstRow.patient_id ?? "—"}
-              </div>
-            </div>
-            <div className="stat-block">
-              <div className="stat-label">Predicted Class</div>
-              <div className={`stat-value large ${firstRow.predicted_class?.toLowerCase().includes("gbm") ? "class-gbm" : "class-lgg"}`}>
-                {firstRow.predicted_class ?? "—"}
-              </div>
-            </div>
-            <div className="stat-block">
-              <div className="stat-label">P(GBM-like)</div>
-              <div className="stat-value large">
-                {firstRow.prob_GBM_like != null
-                  ? firstRow.prob_GBM_like.toFixed(4)
-                  : "—"}
-              </div>
-              {firstRow.prob_GBM_like != null && probBar(firstRow.prob_GBM_like)}
-            </div>
-            <div className="stat-block">
-              <div className="stat-label">Shared Genes</div>
-              <div className="stat-value">{firstRow.shared_gene_count ?? "—"}</div>
-              <div className="stat-sub">of {firstRow.selected_gene_count ?? "?"} selected</div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Full prediction table (if >1 row) */}
-      {preview.length > 1 && (
-        <>
-          <div className="section-label" style={{ marginTop: 20 }}>All predictions</div>
-          <PredictionTable rows={preview} />
-        </>
-      )}
-
-      {/* Download links */}
-      {files && (
-        <>
-          <div className="section-label" style={{ marginTop: 20 }}>Result files</div>
-          <div className="download-links">
-            {files.predictions_url && (
-              <a className="dl-link" href={absUrl(files.predictions_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-predictions">
-                ⬇ Predictions CSV
-              </a>
-            )}
-            {files.report_url && (
-              <a className="dl-link" href={absUrl(files.report_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-report">
-                📄 Inference Report
-              </a>
-            )}
+      {/* Canvas / advanced */}
+      {(files.canvas_index_url ||
+        (files.canvas_files && files.canvas_files.length > 0)) && (
+        <details>
+          <summary
+            style={{
+              cursor: "pointer",
+              fontSize: "0.73rem",
+              color: "var(--text-muted)",
+              userSelect: "none",
+              marginBottom: 8,
+            }}
+          >
+            ▸ Morphology canvas files
+          </summary>
+          <div className="dl-group-links" style={{ marginTop: 8 }}>
             {files.canvas_index_url && (
-              <a className="dl-link" href={absUrl(files.canvas_index_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-canvas-index">
+              <a
+                className="dl-link"
+                href={absUrl(files.canvas_index_url) ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                id="dl-canvas-index"
+              >
                 🗂 Canvas Index CSV
               </a>
             )}
@@ -270,26 +256,165 @@ export default function ResultCard({ data }: Props) {
                   rel="noopener noreferrer"
                   id={`dl-retrieval-${i}`}
                 >
-                  🔍 Retrieval CSV {cf.patient_id ? `(${cf.patient_id})` : `#${i + 1}`}
+                  🔍 Retrieval CSV{" "}
+                  {cf.patient_id ? `(${cf.patient_id})` : `#${i + 1}`}
                 </a>
               ) : null
             )}
           </div>
-        </>
+        </details>
+      )}
+    </div>
+  );
+}
+
+// ── Main ResultCard ───────────────────────────────────────────────────────
+
+interface Props {
+  data: RnaApiResponse;
+}
+
+export default function ResultCard({ data }: Props) {
+  const preview = data.prediction_preview ?? [];
+  const files = data.result_files;
+  const firstRow: PredictionRow | undefined = preview[0];
+  const isGbm = firstRow?.predicted_class?.toLowerCase().includes("gbm");
+
+  return (
+    <div className="report-card" id="result-card">
+
+      {/* ── 1. Prediction Summary ────────────────────────────────────────── */}
+      <div className="report-section">
+        <SectionHeader num="1" title="Prediction Summary" />
+
+        {/* Status pills row */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+          <span
+            className={`pill ${
+              data.status === "completed"
+                ? "pill-success"
+                : data.status === "failed"
+                ? "pill-error"
+                : "pill-running"
+            }`}
+          >
+            {data.status === "completed"
+              ? "✓ Completed"
+              : data.status === "failed"
+              ? "✗ Failed"
+              : "⟳ Uploaded"}
+          </span>
+          {data.inference_enabled && (
+            <span className="pill pill-dim">Phase 14 RNA model</span>
+          )}
+          {data.canvas_enabled && (
+            <span className="pill pill-dim">Canvas enabled</span>
+          )}
+        </div>
+
+        {/* Error */}
+        {data.status === "failed" && data.error && (
+          <div className="info-box" role="alert" style={{ marginBottom: 12 }}>
+            {data.error}
+          </div>
+        )}
+
+        {/* Stat grid — first row */}
+        {firstRow && (
+          <div className="result-grid">
+            <div className="stat-block">
+              <div className="stat-label">Patient ID</div>
+              <div
+                className="stat-value"
+                style={{ fontSize: "1rem", fontFamily: "var(--font-mono)" }}
+              >
+                {firstRow.patient_id ?? "—"}
+              </div>
+            </div>
+            <div className="stat-block">
+              <div className="stat-label">Predicted Class</div>
+              <div
+                className={`stat-value large ${
+                  isGbm ? "class-gbm" : "class-lgg"
+                }`}
+              >
+                {firstRow.predicted_class ?? "—"}
+              </div>
+            </div>
+            <div className="stat-block">
+              <div className="stat-label">P(GBM-like)</div>
+              <div className="stat-value large">
+                {firstRow.prob_GBM_like != null
+                  ? firstRow.prob_GBM_like.toFixed(4)
+                  : "—"}
+              </div>
+              {firstRow.prob_GBM_like != null &&
+                probBar(firstRow.prob_GBM_like)}
+            </div>
+            <div className="stat-block">
+              <div className="stat-label">Shared Genes</div>
+              <div className="stat-value">
+                {firstRow.shared_gene_count ?? "—"}
+              </div>
+              <div className="stat-sub">
+                of {firstRow.selected_gene_count ?? "?"} selected
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Multi-row table */}
+        {preview.length > 1 && (
+          <>
+            <div
+              style={{
+                fontSize: "0.70rem",
+                color: "var(--text-muted)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginTop: 18,
+                marginBottom: 4,
+              }}
+            >
+              All predictions ({preview.length} cases)
+            </div>
+            <PredictionTable rows={preview} />
+          </>
+        )}
+      </div>
+
+      {/* ── 2. Clinical / Research Relevance ─────────────────────────────── */}
+      {data.clinical_relevance && (
+        <ClinicalRelevancePanel cr={data.clinical_relevance} />
       )}
 
-      {/* ── Clinical / Research Relevance ─────────────────────────────── */}
-      {data.clinical_relevance && (
-        <>
-          <div className="section-label" style={{ marginTop: 20 }}>
-            Clinical / Research Relevance
-          </div>
-          <ClinicalRelevancePanel
-            cr={data.clinical_relevance}
-            label="RNA-seq workflow · Phase 14 model"
-          />
-        </>
-      )}
+      {/* ── 3. Downloads ─────────────────────────────────────────────────── */}
+      {files && <DownloadsSection files={files} />}
+
+      {/* ── Developer details ─────────────────────────────────────────────── */}
+      <details className="dev-details">
+        <summary>Developer details — raw API response</summary>
+        <div className="dev-details-body">
+          <pre
+            style={{
+              padding: 12,
+              background: "var(--bg-base)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-sm)",
+              fontSize: "0.70rem",
+              color: "var(--text-muted)",
+              fontFamily: "var(--font-mono)",
+              overflowX: "auto",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              maxHeight: 320,
+              overflowY: "auto",
+            }}
+          >
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        </div>
+      </details>
     </div>
   );
 }

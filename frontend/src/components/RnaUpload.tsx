@@ -56,6 +56,7 @@ export interface CanvasFile {
 
 interface Props {
   onResult: (data: RnaApiResponse) => void;
+  onRunStart?: (filename: string) => void;
 }
 
 /** Returns true if the message looks like a network/CORS failure rather than
@@ -71,7 +72,7 @@ function isNetworkError(msg: string): boolean {
   );
 }
 
-export default function RnaUpload({ onResult }: Props) {
+export default function RnaUpload({ onResult, onRunStart }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [runModel, setRunModel] = useState(true);
   const [makeCanvas, setMakeCanvas] = useState(true);
@@ -106,6 +107,7 @@ export default function RnaUpload({ onResult }: Props) {
 
     setLoading(true);
     setError(null);
+    onRunStart?.(file.name);
 
     const fd = new FormData();
     fd.append("file", file);

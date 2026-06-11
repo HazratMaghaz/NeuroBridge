@@ -753,13 +753,13 @@ function PatchResultCard({ data }: { data: PatchApiResponse }) {
 
 interface Props {
   onResult?: (data: PatchApiResponse) => void;
+  onRunStart?: (filename: string) => void;
 }
 
-export default function PatchUpload({ onResult }: Props) {
+export default function PatchUpload({ onResult, onRunStart }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<PatchApiResponse | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   const handleFile = useCallback((f: File | null) => {
@@ -790,7 +790,7 @@ export default function PatchUpload({ onResult }: Props) {
 
     setLoading(true);
     setError(null);
-    setResult(null);
+    onRunStart?.(file.name);
 
     const fd = new FormData();
     fd.append("file", file);
@@ -809,7 +809,6 @@ export default function PatchUpload({ onResult }: Props) {
         throw new Error(detail ?? `HTTP ${res.status}`);
       }
 
-      setResult(data);
       onResult?.(data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
@@ -882,37 +881,13 @@ export default function PatchUpload({ onResult }: Props) {
               <button
                 type="button"
                 className="btn btn-ghost"
-                onClick={() => {
-                  setFile(null);
-                  setError(null);
-                  setResult(null);
-                }}
+                onClick={() => { setFile(null); setError(null); }}
               >
                 ✕ Clear
               </button>
             )}
           </div>
         </form>
-
-        {/* Loading banner */}
-        {loading && (
-          <div className="loading-banner" role="status" aria-live="polite">
-            <span
-              className="spinner"
-              style={{ marginTop: 2, flexShrink: 0 }}
-            />
-            <div className="loading-banner-body">
-              <div className="loading-banner-title">
-                Running patch-based image inference…
-              </div>
-              <div className="loading-banner-sub">
-                Running patch-based image inference. This may take 1–3&nbsp;minutes
-                depending on patch count and GPU availability. Please keep this
-                tab open.
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Error card */}
         {error && !loading && (
@@ -930,9 +905,6 @@ export default function PatchUpload({ onResult }: Props) {
           </div>
         )}
       </div>
-
-      {/* Result card — rendered below the upload card */}
-      {result && !loading && <PatchResultCard data={result} />}
     </div>
   );
 }
