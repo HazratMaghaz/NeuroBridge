@@ -20,6 +20,16 @@ export interface PatchResultFiles {
   prediction_url?: string | null;
   embedding_url?: string | null;
   report_url?: string | null;
+  molecular_json_url?: string | null;
+  molecular_report_url?: string | null;
+}
+
+export interface ImageToMolecular {
+  primary_interpretation_category?: string | null;
+  candidate_molecular_signals?: string[];
+  interpretation?: string | null;
+  caution?: string | null;
+  phase11a_context?: string[];
 }
 
 export interface PatchApiResponse {
@@ -31,6 +41,7 @@ export interface PatchApiResponse {
   inference_enabled?: boolean;
   inference_result?: Record<string, unknown> | null;
   prediction_preview?: PatchPredictionPreview | null;
+  image_to_molecular?: ImageToMolecular | null;
   result_files?: PatchResultFiles | null;
   error?: string;
   note?: string;
@@ -198,15 +209,172 @@ function PatchResultCard({ data }: { data: PatchApiResponse }) {
 
       {/* Upload-only note (run_model=false) */}
       {data.status === "uploaded" && data.note && (
-        <div
-          className="info-box info"
-          style={{ marginTop: 12 }}
-        >
+        <div className="info-box info" style={{ marginTop: 12 }}>
           {data.note}
         </div>
       )}
 
-      {/* Download links */}
+      {/* ── Predicted Molecular Signature from Image ───────────────────── */}
+      {data.image_to_molecular && (
+        <>
+          <div className="section-label" style={{ marginTop: 24 }}>
+            Predicted Molecular Signature from Image
+          </div>
+
+          <div
+            style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-md)",
+              padding: "18px 20px",
+            }}
+          >
+            {/* Primary category badge */}
+            {data.image_to_molecular.primary_interpretation_category && (
+              <div style={{ marginBottom: 14 }}>
+                <div className="stat-label" style={{ marginBottom: 5 }}>
+                  Primary Interpretation Category
+                </div>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: "var(--teal-glow)",
+                    border: "1px solid rgba(20,184,166,0.30)",
+                    borderRadius: "var(--r-sm)",
+                    padding: "5px 12px",
+                    fontSize: "0.84rem",
+                    fontWeight: 600,
+                    color: "var(--teal-300)",
+                  }}
+                >
+                  🧬 {data.image_to_molecular.primary_interpretation_category}
+                </div>
+              </div>
+            )}
+
+            {/* Interpretation paragraph */}
+            {data.image_to_molecular.interpretation && (
+              <div style={{ marginBottom: 14 }}>
+                <div className="stat-label" style={{ marginBottom: 5 }}>Interpretation</div>
+                <p
+                  style={{
+                    fontSize: "0.82rem",
+                    color: "var(--text-secondary)",
+                    lineHeight: 1.65,
+                  }}
+                >
+                  {data.image_to_molecular.interpretation}
+                </p>
+              </div>
+            )}
+
+            {/* Candidate molecular signals */}
+            {data.image_to_molecular.candidate_molecular_signals &&
+              data.image_to_molecular.candidate_molecular_signals.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div className="stat-label" style={{ marginBottom: 6 }}>
+                  Candidate Molecular / Signature Signals
+                </div>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: 20,
+                    listStyle: "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 5,
+                  }}
+                >
+                  {data.image_to_molecular.candidate_molecular_signals.map(
+                    (sig, i) => (
+                      <li
+                        key={i}
+                        style={{
+                          fontSize: "0.80rem",
+                          color: "var(--text-primary)",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 8,
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: "var(--teal-400)",
+                            flexShrink: 0,
+                            fontWeight: 700,
+                            fontSize: "0.75rem",
+                            marginTop: 2,
+                          }}
+                        >
+                          ▸
+                        </span>
+                        {sig}
+                      </li>
+                    )
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {/* Research caution */}
+            {data.image_to_molecular.caution && (
+              <div className="warning-banner" style={{ marginBottom: 0, marginTop: 4 }}>
+                <span className="warning-icon">⚠️</span>
+                <p className="warning-text" style={{ fontSize: "0.74rem" }}>
+                  {data.image_to_molecular.caution}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Phase 11A context — collapsible */}
+          {data.image_to_molecular.phase11a_context &&
+            data.image_to_molecular.phase11a_context.length > 0 && (
+            <details style={{ marginTop: 10 }}>
+              <summary
+                style={{
+                  cursor: "pointer",
+                  fontSize: "0.73rem",
+                  color: "var(--text-muted)",
+                  userSelect: "none",
+                  padding: "2px 0",
+                }}
+              >
+                ▸ Phase 11A context
+              </summary>
+              <ul
+                style={{
+                  margin: "8px 0 0",
+                  paddingLeft: 18,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  listStyle: "none",
+                }}
+              >
+                {data.image_to_molecular.phase11a_context.map((ctx, i) => (
+                  <li
+                    key={i}
+                    style={{
+                      fontSize: "0.73rem",
+                      color: "var(--text-muted)",
+                      display: "flex",
+                      gap: 7,
+                    }}
+                  >
+                    <span style={{ color: "var(--border-bright)", flexShrink: 0 }}>—</span>
+                    {ctx}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </>
+      )}
+
+      {/* ── Download links ─────────────────────────────────────────────── */}
       {files && (
         <>
           <div className="section-label" style={{ marginTop: 20 }}>
@@ -244,6 +412,28 @@ function PatchResultCard({ data }: { data: PatchApiResponse }) {
                 id="dl-patch-report"
               >
                 📄 Inference Report
+              </a>
+            )}
+            {files.molecular_json_url && (
+              <a
+                className="dl-link"
+                href={absUrl(files.molecular_json_url) ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                id="dl-molecular-json"
+              >
+                🧬 Molecular JSON
+              </a>
+            )}
+            {files.molecular_report_url && (
+              <a
+                className="dl-link"
+                href={absUrl(files.molecular_report_url) ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                id="dl-molecular-report"
+              >
+                📋 Molecular Report
               </a>
             )}
           </div>
