@@ -7,7 +7,14 @@ import joblib
 PROJECT_ROOT = os.getenv("PROJECT_ROOT", "/path/to/CNS-MultiModalAI")
 MODEL_DIR = os.path.join(PROJECT_ROOT, "models", "phase15g_image_to_gene_pathway")
 
-def predict_gene_pathway_from_embedding(embedding_csv, output_dir, top_n=25):
+def predict_gene_pathway_from_embedding(
+    embedding_csv, 
+    output_dir, 
+    top_n=25,
+    run_id=None,
+    sample_id=None,
+    source_type="image_embedding"
+):
     os.makedirs(output_dir, exist_ok=True)
     
     # 1. Load one-row image embedding
@@ -83,6 +90,37 @@ def predict_gene_pathway_from_embedding(embedding_csv, output_dir, top_n=25):
     pred_csv_path = os.path.join(output_dir, "image_to_gene_pathway_predictions.csv")
     pred_df.to_csv(pred_csv_path, index=False)
     
+    # 7b. Create matrix format outputs
+    if not run_id:
+        # Default run_id to parent dir of output_dir
+        run_id = os.path.basename(os.path.dirname(os.path.abspath(output_dir)))
+    if not sample_id:
+        sample_id = run_id
+        
+    matrix_base = {
+        "run_id": run_id,
+        "sample_id": sample_id,
+        "source_type": source_type
+    }
+    
+    # Full pathway/gene matrix
+    pathway_matrix_dict = matrix_base.copy()
+    for tgt, score in zip(target_cols, scores):
+        pathway_matrix_dict[tgt] = score
+    pathway_matrix_df = pd.DataFrame([pathway_matrix_dict])
+    pathway_matrix_csv_path = os.path.join(output_dir, "image_to_gene_pathway_prediction_matrix.csv")
+    pathway_matrix_df.to_csv(pathway_matrix_csv_path, index=False)
+    
+    # Gene expression matrix (only 'gene__' targets)
+    expr_matrix_dict = matrix_base.copy()
+    for tgt, score in zip(target_cols, scores):
+        if tgt.startswith("gene__"):
+            clean_gene = tgt.replace("gene__", "")
+            expr_matrix_dict[clean_gene] = score
+    expr_matrix_df = pd.DataFrame([expr_matrix_dict])
+    expr_matrix_csv_path = os.path.join(output_dir, "image_to_gene_expression_matrix.csv")
+    expr_matrix_df.to_csv(expr_matrix_csv_path, index=False)
+    
     # 8. Create top feature table
     pred_df["abs_score"] = pred_df["predicted_score"].abs()
     top_df = pred_df.sort_values(by="abs_score", ascending=False).head(top_n).copy()
@@ -140,6 +178,8 @@ def predict_gene_pathway_from_embedding(embedding_csv, output_dir, top_n=25):
         "predictions_csv": pred_csv_path,
         "top_features_csv": top_features_csv_path,
         "report_md": report_md_path,
+        "gene_expression_matrix_csv": expr_matrix_csv_path,
+        "gene_pathway_matrix_csv": pathway_matrix_csv_path,
         "top_features": top_features,
         "model_scope_note": model_scope_note
     }

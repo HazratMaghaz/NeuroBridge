@@ -134,24 +134,26 @@ function ExecutiveSummary({ data }: { data: PatchApiResponse }) {
 
 // ── 2. Predicted Molecular Output table ──────────────────────────────────
 
-function MolecularTable({ mol }: { mol: PatchMolecularOutput }) {
+function MolecularTable({ mol, isWsi }: { mol: PatchMolecularOutput; isWsi: boolean }) {
   const features: PatchTopFeature[] = mol.top_features ?? [];
 
   return (
     <div className="report-section">
       <SectionHeader
         num="2"
-        title="Predicted Molecular Output from Image"
+        title={isWsi ? "Predicted Gene / Pathway Expression Output from WSI" : "Predicted Gene / Pathway Expression Output from Image"}
         subtitle="gene-expression-like signature — not measured RNA-seq"
       />
+
+      <p style={{ fontSize: "0.79rem", color: "var(--text-secondary)", lineHeight: 1.65, marginBottom: 14 }}>
+        These are predicted gene/program/pathway scores inferred from histology image embeddings using the frozen Phase 15G Ridge model. They are not measured RNA-seq counts and not a full transcriptome.
+      </p>
 
       <div
         className="caution-strip"
         style={{ marginBottom: 14 }}
       >
-        ⚠ Gene-expression-like molecular profile inferred from histology embeddings.
-        Computational prediction; <strong>not measured RNA-seq</strong>.
-        Relative scores are derived from image-embedding similarity, not expression counts.
+        ⚠ Computational prediction from image embeddings; <strong>not measured RNA-seq</strong>.
       </div>
 
       {features.length > 0 ? (
@@ -159,10 +161,10 @@ function MolecularTable({ mol }: { mol: PatchMolecularOutput }) {
           <table className="prediction-table" style={{ fontSize: "0.75rem" }}>
             <thead>
               <tr>
-                <th>Feature / pathway / program</th>
+                <th>Gene / program / pathway</th>
                 <th>Type</th>
                 <th>Direction</th>
-                <th>Relative score</th>
+                <th>Predicted score</th>
                 <th>Interpretation</th>
               </tr>
             </thead>
@@ -300,9 +302,24 @@ function DownloadsSection({ files }: { files: PatchResultFiles }) {
               📄 Inference Report
             </a>
           )}
-          {files.molecular_top_features_url && (
-            <a className="dl-link dl-link-primary" href={absUrl(files.molecular_top_features_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-top-features">
-              ⬇ Top Features CSV
+          {files.gene_expression_matrix_url && (
+            <a className="dl-link dl-link-primary" href={absUrl(files.gene_expression_matrix_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-gene-matrix">
+              ⬇ Full Predicted Gene Expression Matrix
+            </a>
+          )}
+          {files.gene_pathway_matrix_url && (
+            <a className="dl-link dl-link-primary" href={absUrl(files.gene_pathway_matrix_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-pathway-matrix">
+              ⬇ Full Gene/Program/Pathway Matrix
+            </a>
+          )}
+          {files.gene_pathway_top_features_url && (
+            <a className="dl-link dl-link-primary" href={absUrl(files.gene_pathway_top_features_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-gene-top-features">
+              ⬇ Top Gene/Pathway Features
+            </a>
+          )}
+          {files.gene_pathway_report_url && (
+            <a className="dl-link dl-link-primary" href={absUrl(files.gene_pathway_report_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-gene-report">
+              📋 Gene/Pathway Report
             </a>
           )}
           {files.clinical_relevance_report_url && (
@@ -337,19 +354,24 @@ function DownloadsSection({ files }: { files: PatchResultFiles }) {
               ⬇ Mean Embedding CSV
             </a>
           )}
+          {files.molecular_top_features_url && (
+            <a className="dl-link" href={absUrl(files.molecular_top_features_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-legacy-top-features">
+              ⬇ Legacy Rule-based Top Features
+            </a>
+          )}
           {files.molecular_json_url && (
             <a className="dl-link" href={absUrl(files.molecular_json_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-molecular-json">
-              🧬 Molecular JSON
+              🧬 Legacy Rule-based Molecular JSON
+            </a>
+          )}
+          {files.molecular_report_url && (
+            <a className="dl-link" href={absUrl(files.molecular_report_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-molecular-report">
+              📋 Legacy Rule-based Molecular Report
             </a>
           )}
           {files.clinical_relevance_json_url && (
             <a className="dl-link" href={absUrl(files.clinical_relevance_json_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-clin-relevance-json">
               🏥 Clinical Relevance JSON
-            </a>
-          )}
-          {files.molecular_report_url && (
-            <a className="dl-link" href={absUrl(files.molecular_report_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-molecular-report">
-              📋 Molecular Report
             </a>
           )}
         </div>
@@ -383,7 +405,7 @@ export default function PatchResultReport({ data }: Props) {
         <ExecutiveSummary data={data} />
 
         {/* 2 — Molecular Output Table */}
-        {mol && <MolecularTable mol={mol} />}
+        {mol && <MolecularTable mol={mol} isWsi={!!data.wsi_extraction} />}
 
         {/* 3 — Clinical / Research Relevance */}
         {cr && <ClinicalRelevanceSection cr={cr} />}

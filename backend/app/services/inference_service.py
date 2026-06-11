@@ -635,6 +635,8 @@ async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict
                     "gene_pathway_predictions_url": _result_file_url(gene_pathway_out["predictions_csv"], run_dir),
                     "gene_pathway_top_features_url": _result_file_url(gene_pathway_out["top_features_csv"], run_dir),
                     "gene_pathway_report_url": _result_file_url(gene_pathway_out["report_md"], run_dir),
+                    "gene_expression_matrix_url": _result_file_url(gene_pathway_out["gene_expression_matrix_csv"], run_dir),
+                    "gene_pathway_matrix_url": _result_file_url(gene_pathway_out["gene_pathway_matrix_csv"], run_dir),
                 })
 
         except Exception as e:
@@ -766,6 +768,8 @@ def handle_wsi_path_inference(wsi_path: str, max_patches: int = 100, run_model: 
                     "gene_pathway_predictions_url": _result_file_url(gene_pathway_out["predictions_csv"], run_dir),
                     "gene_pathway_top_features_url": _result_file_url(gene_pathway_out["top_features_csv"], run_dir),
                     "gene_pathway_report_url": _result_file_url(gene_pathway_out["report_md"], run_dir),
+                    "gene_expression_matrix_url": _result_file_url(gene_pathway_out["gene_expression_matrix_csv"], run_dir),
+                    "gene_pathway_matrix_url": _result_file_url(gene_pathway_out["gene_pathway_matrix_csv"], run_dir),
                 })
                 
         else:

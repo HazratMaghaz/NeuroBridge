@@ -25,6 +25,11 @@ export interface PatchResultFiles {
   molecular_top_features_url?: string | null;
   clinical_relevance_json_url?: string | null;
   clinical_relevance_report_url?: string | null;
+  gene_expression_matrix_url?: string | null;
+  gene_pathway_matrix_url?: string | null;
+  gene_pathway_predictions_url?: string | null;
+  gene_pathway_top_features_url?: string | null;
+  gene_pathway_report_url?: string | null;
 }
 
 export interface PatchTopFeature {
