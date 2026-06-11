@@ -7,6 +7,7 @@ import ResultCard from "@/components/ResultCard";
 import CanvasViewer from "@/components/CanvasViewer";
 import PatchUpload, { type PatchApiResponse } from "@/components/PatchUpload";
 import PatchResultReport from "@/components/PatchResultReport";
+import WsiUpload from "@/components/WsiUpload";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -135,6 +136,11 @@ export default function HomePage() {
   const [patchFilename, setPatchFilename] = useState<string>("");
   const [patchImageCount, setPatchImageCount] = useState<number | null>(null);
 
+  // WSI state
+  const [wsiState, setWsiState] = useState<RunState>("idle");
+  const [wsiResult, setWsiResult] = useState<PatchApiResponse | null>(null);
+  const [wsiFilename, setWsiFilename] = useState<string>("");
+
   // Health
   const [health, setHealth] = useState<HealthInfo>({
     state: "checking",
@@ -216,6 +222,29 @@ export default function HomePage() {
     setPatchImageCount(null);
   }
 
+  // WSI callbacks
+  function handleWsiRunStart(filename: string) {
+    setWsiState("running");
+    setWsiFilename(filename);
+    setWsiResult(null);
+  }
+
+  function handleWsiResult(data: PatchApiResponse) {
+    setWsiResult(data);
+    setWsiState("done");
+    setHealth({
+      state: "connected",
+      label: "Backend connected",
+      detail: "WSI inference completed",
+    });
+  }
+
+  function resetWsi() {
+    setWsiState("idle");
+    setWsiResult(null);
+    setWsiFilename("");
+  }
+
   const canvasFiles = rnaResult?.result_files?.canvas_files ?? [];
   const hasCanvas = canvasFiles.length > 0;
 
@@ -262,12 +291,12 @@ export default function HomePage() {
         </button>
         <button
           role="tab"
-          className="workflow-tab"
-          disabled
-          aria-disabled="true"
+          className={`workflow-tab${tab === "wsi" ? " active" : ""}`}
+          onClick={() => setTab("wsi")}
+          aria-selected={tab === "wsi"}
+          id="tab-wsi"
         >
           🖼️ WSI Analysis
-          <span className="workflow-tab-soon">Soon</span>
         </button>
       </div>
 
@@ -398,22 +427,55 @@ export default function HomePage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
-          WSI (Coming Soon)
+          WSI WORKFLOW
       ═══════════════════════════════════════════════════════════════════ */}
       {tab === "wsi" && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "60px 24px",
-            color: "var(--text-muted)",
-          }}
-        >
-          <div style={{ fontSize: "2.5rem", marginBottom: 14 }}>🖼️</div>
-          <div style={{ fontSize: "1rem", fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
-            Whole Slide Image Analysis
-          </div>
-          <div style={{ fontSize: "0.80rem" }}>Coming in a future version.</div>
-        </div>
+        <>
+          {/* Upload form — only shown when idle */}
+          {wsiState === "idle" && (
+            <WsiUpload
+              onResult={handleWsiResult}
+              onRunStart={handleWsiRunStart}
+            />
+          )}
+
+          {/* Progress panel during run */}
+          {wsiState === "running" && (
+            <>
+              <InputSummary
+                icon="🖼️"
+                filename={wsiFilename}
+                meta="WSI Path · CTransPath embeddings · Phase 14 model"
+                statusPill={<span className="pill pill-running">⟳ Running</span>}
+                onRunAnother={resetWsi}
+              />
+              <ProgressPanel
+                title="Extracting WSI patches and running image-to-gene/pathway inference…"
+                sub="Reading local WSI, running Phase 14 patch inference, and Phase 15G molecular inference. This may take a few minutes."
+              />
+            </>
+          )}
+
+          {/* Compact input summary after completion */}
+          {wsiState === "done" && wsiResult && (
+            <InputSummary
+              icon="🖼️"
+              filename={wsiFilename}
+              meta={`WSI Path · ${wsiResult.wsi_extraction?.n_patches_saved ?? wsiResult.n_images_found ?? "?"} patches extracted`}
+              statusPill={
+                <span className={`pill ${wsiResult.status === "completed" ? "pill-success" : "pill-error"}`}>
+                  {wsiResult.status === "completed" ? "✓ Completed" : "✗ Failed"}
+                </span>
+              }
+              onRunAnother={resetWsi}
+            />
+          )}
+
+          {/* Patch result report — reuses the exact same component as the patch tab */}
+          {wsiState === "done" && wsiResult && (
+            <PatchResultReport data={wsiResult} />
+          )}
+        </>
       )}
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}

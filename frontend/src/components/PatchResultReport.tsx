@@ -108,9 +108,9 @@ function ExecutiveSummary({ data }: { data: PatchApiResponse }) {
 
           {/* Images found */}
           <div className="stat-block">
-            <div className="stat-label">Images Found</div>
-            <div className="stat-value">{data.n_images_found ?? "—"}</div>
-            <div className="stat-sub">in uploaded ZIP</div>
+            <div className="stat-label">{data.wsi_extraction ? "Patches Extracted" : "Images Found"}</div>
+            <div className="stat-value">{data.wsi_extraction?.n_patches_saved ?? data.n_images_found ?? "—"}</div>
+            <div className="stat-sub">{data.wsi_extraction ? "from WSI" : "in uploaded ZIP"}</div>
           </div>
         </div>
       ) : (

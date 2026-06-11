@@ -65,6 +65,7 @@ export interface PatchApiResponse {
   status: "uploaded" | "completed" | "failed";
   run_dir?: string;
   n_images_found?: number;
+  wsi_extraction?: { n_patches_saved?: number };
   bytes_saved?: number;
   warning?: string;
   inference_enabled?: boolean;
