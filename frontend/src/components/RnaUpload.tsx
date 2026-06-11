@@ -16,7 +16,18 @@ export interface RnaApiResponse {
   inference_result?: Record<string, unknown> | null;
   prediction_preview?: PredictionRow[];
   result_files?: ResultFiles;
+  clinical_relevance?: ClinicalRelevance | null;
   error?: string;
+}
+
+export interface ClinicalRelevance {
+  workflow?: string;
+  predicted_class?: string;
+  prob_GBM_like?: string;
+  research_summary?: string;
+  research_direction?: string;
+  model_scope?: string;
+  caution?: string;
 }
 
 export interface PredictionRow {

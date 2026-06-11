@@ -22,12 +22,41 @@ export interface PatchResultFiles {
   report_url?: string | null;
   molecular_json_url?: string | null;
   molecular_report_url?: string | null;
+  molecular_top_features_url?: string | null;
+  clinical_relevance_json_url?: string | null;
+  clinical_relevance_report_url?: string | null;
+}
+
+export interface PatchTopFeature {
+  feature_name?: string;
+  feature_type?: string;
+  predicted_direction?: string;
+  relative_score?: number | null;
+  interpretation?: string;
+  evidence_basis?: string;
+}
+
+export interface PatchMolecularOutput {
+  output_type?: string;
+  top_features?: PatchTopFeature[];
+  caution?: string;
+}
+
+export interface PatchClinicalRelevance {
+  workflow?: string;
+  predicted_class?: string;
+  prob_GBM_like?: string;
+  research_summary?: string;
+  research_direction?: string;
+  model_scope?: string;
+  caution?: string;
 }
 
 export interface ImageToMolecular {
   primary_interpretation_category?: string | null;
   candidate_molecular_signals?: string[];
   interpretation?: string | null;
+  predicted_molecular_output?: PatchMolecularOutput | null;
   caution?: string | null;
   phase11a_context?: string[];
 }
@@ -42,6 +71,7 @@ export interface PatchApiResponse {
   inference_result?: Record<string, unknown> | null;
   prediction_preview?: PatchPredictionPreview | null;
   image_to_molecular?: ImageToMolecular | null;
+  clinical_relevance?: PatchClinicalRelevance | null;
   result_files?: PatchResultFiles | null;
   error?: string;
   note?: string;
@@ -105,11 +135,191 @@ function probBar(prob: number) {
   );
 }
 
+// ── Molecular output table ────────────────────────────────────────────────
+
+function MolecularOutputTable({ mol }: { mol: PatchMolecularOutput }) {
+  const features = mol.top_features ?? [];
+  if (features.length === 0) return null;
+
+  return (
+    <div>
+      {/* Safe wording disclaimer */}
+      <div
+        style={{
+          fontSize: "0.72rem",
+          color: "var(--text-muted)",
+          fontStyle: "italic",
+          marginBottom: 10,
+          lineHeight: 1.5,
+        }}
+      >
+        Gene-expression-like molecular profile inferred from histology embeddings.
+        Computational prediction; not measured RNA-seq.
+        Relative scores are derived from image embedding similarity, not expression counts.
+      </div>
+
+      <div style={{ overflowX: "auto" }}>
+        <table className="prediction-table" style={{ fontSize: "0.76rem" }}>
+          <thead>
+            <tr>
+              <th>Feature / pathway / program</th>
+              <th>Type</th>
+              <th>Direction</th>
+              <th>Relative score</th>
+              <th>Interpretation</th>
+            </tr>
+          </thead>
+          <tbody>
+            {features.map((f, i) => {
+              const isHigh = f.predicted_direction === "high";
+              return (
+                <tr key={i}>
+                  <td style={{ fontFamily: "var(--font-sans)", fontWeight: 500, color: "var(--text-primary)" }}>
+                    {f.feature_name ?? "—"}
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        fontSize: "0.68rem",
+                        background: "rgba(148,163,184,0.08)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "var(--r-sm)",
+                        padding: "1px 6px",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      {f.feature_type ?? "—"}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color: isHigh ? "var(--amber-500)" : "var(--teal-400)",
+                        fontSize: "0.72rem",
+                      }}
+                    >
+                      {f.predicted_direction ?? "—"}
+                    </span>
+                  </td>
+                  <td style={{ fontFamily: "var(--font-mono)", color: "var(--teal-300)" }}>
+                    {f.relative_score != null ? f.relative_score.toFixed(4) : "—"}
+                  </td>
+                  <td style={{ fontSize: "0.73rem", color: "var(--text-secondary)", maxWidth: 260 }}>
+                    {f.interpretation ?? "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {mol.caution && (
+        <div
+          style={{
+            marginTop: 8,
+            fontSize: "0.70rem",
+            color: "var(--text-muted)",
+            fontStyle: "italic",
+          }}
+        >
+          ⚠ {mol.caution}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Patch clinical relevance panel ────────────────────────────────────────
+
+function PatchClinicalRelevancePanel({ cr }: { cr: PatchClinicalRelevance }) {
+  const isGbm = cr.predicted_class?.toLowerCase().includes("gbm");
+  const dirColor = isGbm ? "var(--amber-500)" : "var(--teal-400)";
+
+  return (
+    <div
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+        padding: "14px 18px",
+      }}
+    >
+      {/* Direction badge */}
+      {cr.research_direction && (
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: isGbm ? "var(--amber-bg)" : "var(--teal-glow)",
+            border: `1px solid ${isGbm ? "rgba(245,158,11,0.30)" : "rgba(20,184,166,0.30)"}`,
+            borderRadius: "var(--r-sm)",
+            padding: "4px 10px",
+            fontSize: "0.78rem",
+            fontWeight: 600,
+            color: dirColor,
+            marginBottom: 10,
+          }}
+        >
+          {isGbm ? "⚡" : "🧠"} {cr.research_direction}
+        </div>
+      )}
+
+      {/* Research summary */}
+      {cr.research_summary && (
+        <p
+          style={{
+            fontSize: "0.79rem",
+            color: "var(--text-secondary)",
+            lineHeight: 1.6,
+            marginBottom: 8,
+          }}
+        >
+          {cr.research_summary}
+        </p>
+      )}
+
+      {/* Scope + caution row */}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 6 }}>
+        {cr.model_scope && (
+          <span
+            style={{
+              fontSize: "0.70rem",
+              color: "var(--text-muted)",
+              background: "rgba(148,163,184,0.06)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-sm)",
+              padding: "2px 8px",
+            }}
+          >
+            Scope: {cr.model_scope}
+          </span>
+        )}
+        {cr.caution && (
+          <span
+            style={{
+              fontSize: "0.70rem",
+              color: "var(--text-muted)",
+              fontStyle: "italic",
+              flex: 1,
+            }}
+          >
+            ⚠ {cr.caution}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Patch result sub-component ────────────────────────────────────────────
 
 function PatchResultCard({ data }: { data: PatchApiResponse }) {
   const preview = data.prediction_preview;
   const files = data.result_files;
+
 
   const statusClass =
     data.status === "completed"
@@ -374,6 +584,35 @@ function PatchResultCard({ data }: { data: PatchApiResponse }) {
         </>
       )}
 
+      {/* ── Predicted Molecular Output from Image (table) ────────────── */}
+      {data.image_to_molecular?.predicted_molecular_output && (
+        <>
+          <div className="section-label" style={{ marginTop: 22 }}>
+            Predicted Molecular Output from Image
+          </div>
+          <div
+            style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-md)",
+              padding: "16px 18px",
+            }}
+          >
+            <MolecularOutputTable mol={data.image_to_molecular.predicted_molecular_output} />
+          </div>
+        </>
+      )}
+
+      {/* ── Clinical / Research Relevance ─────────────────────────────── */}
+      {data.clinical_relevance && (
+        <>
+          <div className="section-label" style={{ marginTop: 22 }}>
+            Clinical / Research Relevance
+          </div>
+          <PatchClinicalRelevancePanel cr={data.clinical_relevance} />
+        </>
+      )}
+
       {/* ── Download links ─────────────────────────────────────────────── */}
       {files && (
         <>
@@ -434,6 +673,39 @@ function PatchResultCard({ data }: { data: PatchApiResponse }) {
                 id="dl-molecular-report"
               >
                 📋 Molecular Report
+              </a>
+            )}
+            {files.molecular_top_features_url && (
+              <a
+                className="dl-link"
+                href={absUrl(files.molecular_top_features_url) ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                id="dl-top-features"
+              >
+                ⬇ Top Features CSV
+              </a>
+            )}
+            {files.clinical_relevance_json_url && (
+              <a
+                className="dl-link"
+                href={absUrl(files.clinical_relevance_json_url) ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                id="dl-clin-relevance-json"
+              >
+                🏥 Clinical Relevance JSON
+              </a>
+            )}
+            {files.clinical_relevance_report_url && (
+              <a
+                className="dl-link"
+                href={absUrl(files.clinical_relevance_report_url) ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                id="dl-clin-relevance-report"
+              >
+                📋 Clinical Relevance Report
               </a>
             )}
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import type { RnaApiResponse, PredictionRow, CanvasFile } from "./RnaUpload";
+import type { RnaApiResponse, PredictionRow, CanvasFile, ClinicalRelevance } from "./RnaUpload";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -76,6 +76,77 @@ function PredictionTable({ rows }: { rows: PredictionRow[] }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function ClinicalRelevancePanel({ cr, label }: { cr: ClinicalRelevance; label?: string }) {
+  const isGbm = cr.predicted_class?.toLowerCase().includes("gbm");
+  const dirColor = isGbm ? "var(--amber-500)" : "var(--teal-400)";
+  return (
+    <div
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+        padding: "14px 18px",
+        marginTop: 16,
+      }}
+    >
+      <div className="stat-label" style={{ marginBottom: 10, fontSize: "0.72rem" }}>
+        {label ?? "Clinical / Research Relevance"}
+      </div>
+
+      {/* Direction badge */}
+      {cr.research_direction && (
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: isGbm ? "var(--amber-bg)" : "var(--teal-glow)",
+            border: `1px solid ${isGbm ? "rgba(245,158,11,0.30)" : "rgba(20,184,166,0.30)"}`,
+            borderRadius: "var(--r-sm)",
+            padding: "4px 10px",
+            fontSize: "0.78rem",
+            fontWeight: 600,
+            color: dirColor,
+            marginBottom: 10,
+          }}
+        >
+          {isGbm ? "⚡" : "🧠"} {cr.research_direction}
+        </div>
+      )}
+
+      {/* Research summary */}
+      {cr.research_summary && (
+        <p style={{ fontSize: "0.79rem", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 8 }}>
+          {cr.research_summary}
+        </p>
+      )}
+
+      {/* Model scope + caution */}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 6 }}>
+        {cr.model_scope && (
+          <span
+            style={{
+              fontSize: "0.70rem",
+              color: "var(--text-muted)",
+              background: "rgba(148,163,184,0.06)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-sm)",
+              padding: "2px 8px",
+            }}
+          >
+            Scope: {cr.model_scope}
+          </span>
+        )}
+        {cr.caution && (
+          <span style={{ fontSize: "0.70rem", color: "var(--text-muted)", fontStyle: "italic", flex: 1 }}>
+            ⚠ {cr.caution}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -204,6 +275,19 @@ export default function ResultCard({ data }: Props) {
               ) : null
             )}
           </div>
+        </>
+      )}
+
+      {/* ── Clinical / Research Relevance ─────────────────────────────── */}
+      {data.clinical_relevance && (
+        <>
+          <div className="section-label" style={{ marginTop: 20 }}>
+            Clinical / Research Relevance
+          </div>
+          <ClinicalRelevancePanel
+            cr={data.clinical_relevance}
+            label="RNA-seq workflow · Phase 14 model"
+          />
         </>
       )}
     </div>
