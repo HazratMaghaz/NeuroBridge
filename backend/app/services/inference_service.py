@@ -111,6 +111,131 @@ def _safe_extract_zip(zip_path: Path, dest_dir: Path) -> None:
         zf.extractall(dest_dir)
 
 
+
+
+def _write_image_to_molecular_interpretation(result: dict, output_dir: Path) -> dict:
+    """
+    Write a safe image-to-molecular interpretation report.
+
+    This is not full transcriptome reconstruction. It maps the image-based
+    GBM/LGG-like prediction into biologically motivated interpretation text
+    based on Phase 11A/8B thesis results.
+    """
+    import json
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    predicted_class = result.get("predicted_class", "Unknown")
+    prob = result.get("prob_GBM_like")
+    n_patches = result.get("n_patches")
+
+    if prob is None:
+        prob_text = "not available"
+    else:
+        prob_text = f"{float(prob):.4f}"
+
+    if predicted_class == "GBM-like":
+        primary_category = "GBM-like aggressive biology"
+        interpretation = (
+            "The histology patch embedding produced a GBM-like similarity pattern. "
+            "In the Phase 11A image-to-biology analysis, GBM-high molecular programs "
+            "were linked with chromatin organization, mitotic/cell-cycle activity, "
+            "extracellular-matrix remodeling, and aggressive tumor biology signals."
+        )
+        candidate_signals = [
+            "Cell-cycle / mitotic activity",
+            "Chromatin and histone-associated programs",
+            "Extracellular matrix remodeling",
+            "DNA damage / repair-associated pathway signals",
+            "GBM-high protein-coding program similarity",
+        ]
+    elif predicted_class == "LGG-like":
+        primary_category = "LGG-like neural/synaptic biology"
+        interpretation = (
+            "The histology patch embedding produced an LGG-like similarity pattern. "
+            "In the Phase 11A image-to-biology analysis, LGG-high molecular programs "
+            "were linked with neuronal/synaptic, lipid/cholesterol, and lower-grade "
+            "glioma-like molecular signals."
+        )
+        candidate_signals = [
+            "Neuronal/synaptic-associated programs",
+            "Lipid/cholesterol-associated biology",
+            "LGG-high protein-coding program similarity",
+            "Lower-grade glioma-like molecular direction",
+        ]
+    else:
+        primary_category = "Uncertain image-to-molecular interpretation"
+        interpretation = (
+            "The model output was not clearly mapped to a GBM-like or LGG-like category. "
+            "The result should be treated as exploratory only."
+        )
+        candidate_signals = []
+
+    payload = {
+        "image_to_molecular_output_type": "interpretation_report",
+        "predicted_class": predicted_class,
+        "prob_GBM_like": prob,
+        "n_patches": n_patches,
+        "primary_interpretation_category": primary_category,
+        "candidate_molecular_signals": candidate_signals,
+        "interpretation": interpretation,
+        "caution": (
+            "This is a computational image-to-molecular interpretation from histology patch embeddings. "
+            "It is not measured RNA-seq, not a full transcriptome reconstruction, not externally validated "
+            "as a clinical biomarker, and not intended for diagnosis."
+        ),
+        "phase11a_context": [
+            "GBM-like aggressive biology: predicted GBM-high program/pathway scores from WSI embeddings.",
+            "LGG-like neural/synaptic biology: predicted LGG-high program/pathway scores from WSI embeddings.",
+            "Morphology-linked molecular biology: WSI embeddings connect morphology with metabolic, epigenetic, transporter, ECM, and lipid-related signals.",
+            "Candidate gene-level interpretability: selected target estimates provide hypotheses, not full transcriptome reconstruction.",
+        ],
+    }
+
+    json_path = output_dir / "image_to_molecular_interpretation.json"
+    md_path = output_dir / "image_to_molecular_interpretation_report.md"
+
+    json_path.write_text(json.dumps(payload, indent=2))
+
+    md = f"""# Image-to-Molecular Interpretation Report
+
+## Prediction summary
+
+- Predicted image class: **{predicted_class}**
+- Probability GBM-like: **{prob_text}**
+- Number of patches used: **{n_patches}**
+- Primary interpretation category: **{primary_category}**
+
+## Candidate molecular interpretation
+
+{interpretation}
+
+## Candidate molecular/signature signals
+
+""" + "\n".join([f"- {x}" for x in candidate_signals]) + """
+
+## Research caution
+
+This is a computational image-to-molecular interpretation from histology patch embeddings. It is **not measured RNA-seq**, **not full transcriptome reconstruction**, **not a clinical biomarker**, and **not intended for diagnosis**.
+
+## Phase 11A context
+
+- GBM-like aggressive biology: predicted GBM-high program/pathway scores from WSI embeddings.
+- LGG-like neural/synaptic biology: predicted LGG-high program/pathway scores from WSI embeddings.
+- Morphology-linked molecular biology: WSI embeddings connect morphology with metabolic, epigenetic, transporter, ECM, and lipid-related molecular signals.
+- Candidate gene-level interpretability: selected-target estimates provide hypotheses, not full transcriptome reconstruction.
+"""
+
+    md_path.write_text(md)
+
+    return {
+        "interpretation_json": str(json_path),
+        "interpretation_report_md": str(md_path),
+        "summary": payload,
+    }
+
+
 async def handle_rna_upload(
     file: UploadFile,
     run_model: bool = True,
@@ -285,10 +410,16 @@ async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict
                 "train_balanced_accuracy_internal": result.get("train_balanced_accuracy_internal"),
             }
 
+            molecular = _write_image_to_molecular_interpretation(result, output_dir)
+
+            response["image_to_molecular"] = molecular["summary"]
+
             response["result_files"] = {
                 "prediction_url": _result_file_url(pred_csv, run_dir) if pred_csv.exists() else None,
                 "embedding_url": _result_file_url(emb_csv, run_dir) if emb_csv.exists() else None,
                 "report_url": _result_file_url(report_md, run_dir) if report_md.exists() else None,
+                "molecular_json_url": _result_file_url(molecular.get("interpretation_json"), run_dir),
+                "molecular_report_url": _result_file_url(molecular.get("interpretation_report_md"), run_dir),
             }
 
         except Exception as e:
