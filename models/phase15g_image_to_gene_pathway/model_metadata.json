@@ -1,0 +1,16 @@
+{
+  "model_type": "RidgeCV",
+  "alphas_tested": [
+    0.1,
+    1.0,
+    10.0,
+    100.0,
+    1000.0
+  ],
+  "best_alpha": 1000.0,
+  "n_features": 768,
+  "n_targets": 101,
+  "n_train_samples": 480,
+  "x_scaled": true,
+  "y_scaled": true
+}
