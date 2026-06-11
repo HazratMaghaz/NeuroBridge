@@ -646,3 +646,135 @@ async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict
 
     return response
 
+
+def handle_wsi_path_inference(wsi_path: str, max_patches: int = 100, run_model: bool = True) -> dict:
+    """
+    Handle local WSI path inference:
+    1. Validate path
+    2. Extract patches
+    3. Run Phase 14 patch inference (if run_model=True)
+    """
+    from pathlib import Path
+    
+    path_obj = Path(wsi_path)
+    if not path_obj.exists():
+        raise ValueError(f"Local WSI file not found: {wsi_path}")
+        
+    valid_exts = {".svs", ".tif", ".tiff"}
+    if path_obj.suffix.lower() not in valid_exts:
+        raise ValueError(f"Invalid WSI format. Expected one of {valid_exts}")
+        
+    run_dir = _make_run_dir("wsi")
+    
+    response = {
+        "status": "processing",
+        "run_dir": str(run_dir),
+        "wsi_path": wsi_path,
+        "warning": WARNING_TEXT,
+        "inference_enabled": bool(run_model),
+        "inference_result": None,
+        "prediction_preview": None,
+        "result_files": None,
+    }
+    
+    try:
+        from cns_multimodalai.preprocessing.wsi_patch_extractor import extract_patches_from_wsi
+        
+        extract_res = extract_patches_from_wsi(
+            wsi_path=wsi_path,
+            output_dir=str(run_dir),
+            max_patches=max_patches
+        )
+        
+        response["wsi_extraction"] = extract_res
+        patch_dir = Path(extract_res["patch_dir"])
+        n_images = extract_res["n_patches_saved"]
+        
+        if n_images == 0:
+            response["status"] = "failed"
+            response["error"] = "WSI patch extraction yielded 0 patches. Check tissue masking."
+            return response
+
+        if run_model:
+            output_dir = run_dir / "inference"
+            result, emb, clf_pack = predict_from_patch_folder(
+                patch_dir=patch_dir,
+                output_dir=output_dir,
+            )
+
+            response["status"] = "completed"
+            response["inference_result"] = result
+
+            pred_csv = output_dir / "patch_folder_prediction.csv"
+            emb_csv = output_dir / "patch_folder_mean_embedding.csv"
+            report_md = output_dir / "patch_inference_report.md"
+
+            if not report_md.exists():
+                report_md.write_text(
+                    "# CNS-MultiModalAI WSI Inference Report\n\n"
+                    "## Prediction summary\n\n"
+                    f"- Input type: Local WSI path\n"
+                    f"- Number of patches extracted: {n_images}\n"
+                    f"- Number of patches used by model: {result.get('n_patches')}\n"
+                    f"- Predicted class: {result.get('predicted_class')}\n"
+                    f"- Probability GBM-like: {result.get('prob_GBM_like')}\n\n"
+                    "## Important note\n\n"
+                    "This is a research prototype. The output is GBM-like vs LGG-like similarity only. "
+                    "It is not a pan-CNS classifier and not intended for clinical diagnosis.\n"
+                )
+
+            response["prediction_preview"] = {
+                "predicted_class": result.get("predicted_class"),
+                "prob_GBM_like": result.get("prob_GBM_like"),
+                "predicted_label": result.get("predicted_label"),
+                "n_patches": result.get("n_patches"),
+                "train_accuracy_internal": result.get("train_accuracy_internal"),
+                "train_balanced_accuracy_internal": result.get("train_balanced_accuracy_internal"),
+            }
+
+            molecular = _write_image_to_molecular_interpretation(result, output_dir)
+
+            response["image_to_molecular"] = molecular["summary"]
+            response["clinical_relevance"] = molecular["clinical_relevance"]
+
+            if emb_csv.exists():
+                from cns_multimodalai.inference.predict_gene_pathway_from_image import predict_gene_pathway_from_embedding
+                gene_pathway_out = predict_gene_pathway_from_embedding(str(emb_csv), str(output_dir))
+                
+                response["predicted_gene_pathway_output"] = gene_pathway_out
+                
+                if response.get("image_to_molecular"):
+                    response["image_to_molecular"]["predicted_molecular_output"] = {
+                        "output_type": "signature_level_prediction",
+                        "top_features": gene_pathway_out["top_features"],
+                        "caution": gene_pathway_out["model_scope_note"]
+                    }
+
+            response["result_files"] = {
+                "prediction_url": _result_file_url(pred_csv, run_dir) if pred_csv.exists() else None,
+                "embedding_url": _result_file_url(emb_csv, run_dir) if emb_csv.exists() else None,
+                "report_url": _result_file_url(report_md, run_dir) if report_md.exists() else None,
+                "molecular_json_url": _result_file_url(molecular.get("interpretation_json"), run_dir),
+                "molecular_report_url": _result_file_url(molecular.get("interpretation_report_md"), run_dir),
+                "molecular_top_features_url": _result_file_url(molecular.get("top_features_csv"), run_dir),
+                "clinical_relevance_json_url": _result_file_url(molecular.get("clinical_relevance_json"), run_dir),
+                "clinical_relevance_report_url": _result_file_url(molecular.get("clinical_relevance_report_md"), run_dir),
+            }
+
+            if emb_csv.exists():
+                response["result_files"].update({
+                    "gene_pathway_predictions_url": _result_file_url(gene_pathway_out["predictions_csv"], run_dir),
+                    "gene_pathway_top_features_url": _result_file_url(gene_pathway_out["top_features_csv"], run_dir),
+                    "gene_pathway_report_url": _result_file_url(gene_pathway_out["report_md"], run_dir),
+                })
+                
+        else:
+            response["status"] = "extracted"
+            response["note"] = "WSI patches extracted. Set run_model=true to run inference."
+
+    except Exception as e:
+        response["status"] = "failed"
+        response["error"] = repr(e)
+
+    return response
+
