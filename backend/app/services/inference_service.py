@@ -604,6 +604,21 @@ async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict
             response["image_to_molecular"] = molecular["summary"]
             response["clinical_relevance"] = molecular["clinical_relevance"]
 
+            # Predict real image-to-gene/pathway if mean embedding was generated
+            if emb_csv.exists():
+                from cns_multimodalai.inference.predict_gene_pathway_from_image import predict_gene_pathway_from_embedding
+                gene_pathway_out = predict_gene_pathway_from_embedding(str(emb_csv), str(output_dir))
+                
+                response["predicted_gene_pathway_output"] = gene_pathway_out
+                
+                # Use true model predictions for the molecular table display
+                if response["image_to_molecular"]:
+                    response["image_to_molecular"]["predicted_molecular_output"] = {
+                        "output_type": "signature_level_prediction",
+                        "top_features": gene_pathway_out["top_features"],
+                        "caution": gene_pathway_out["model_scope_note"]
+                    }
+
             response["result_files"] = {
                 "prediction_url": _result_file_url(pred_csv, run_dir) if pred_csv.exists() else None,
                 "embedding_url": _result_file_url(emb_csv, run_dir) if emb_csv.exists() else None,
@@ -614,6 +629,13 @@ async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict
                 "clinical_relevance_json_url": _result_file_url(molecular.get("clinical_relevance_json"), run_dir),
                 "clinical_relevance_report_url": _result_file_url(molecular.get("clinical_relevance_report_md"), run_dir),
             }
+
+            if emb_csv.exists():
+                response["result_files"].update({
+                    "gene_pathway_predictions_url": _result_file_url(gene_pathway_out["predictions_csv"], run_dir),
+                    "gene_pathway_top_features_url": _result_file_url(gene_pathway_out["top_features_csv"], run_dir),
+                    "gene_pathway_report_url": _result_file_url(gene_pathway_out["report_md"], run_dir),
+                })
 
         except Exception as e:
             response["status"] = "failed"
