@@ -1,0 +1,26 @@
+feature_name,feature_type,predicted_score,predicted_direction,relative_score,interpretation,evidence_basis
+ALDOC,gene,8.7067,high,8.7067,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+SCD,gene,8.4753,high,8.4753,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+GPRC5B,gene,7.2243,high,7.2243,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+PLEKHB1,gene,7.2122,high,7.2122,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+MTURN,gene,6.8577,high,6.8577,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+TCEAL4,gene,6.3362,high,6.3362,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+PAQR6,gene,5.8151,high,5.8151,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+EFHD1,gene,5.4634,high,5.4634,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+FAM171A1,gene,5.3664,high,5.3664,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+H2BC12,gene,5.0741,high,5.0741,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+ALDH2,gene,4.9882,high,4.9882,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+ETNPPL,gene,4.9059,high,4.9059,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+IGIP,gene,4.9013,high,4.9013,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+CCNB1,gene,4.5526,high,4.5526,proliferative/cell-cycle signal,Phase 15G frozen image-to-gene/pathway Ridge model
+DAAM2,gene,4.4753,high,4.4753,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+COL4A1,gene,4.4458,high,4.4458,ECM/invasion/vascular remodeling signal,Phase 15G frozen image-to-gene/pathway Ridge model
+HDAC11,gene,4.3138,high,4.3138,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+H2AC8,gene,4.2958,high,4.2958,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+COL4A2,gene,4.2207,high,4.2207,ECM/invasion/vascular remodeling signal,Phase 15G frozen image-to-gene/pathway Ridge model
+H2AC20,gene,4.1665,high,4.1665,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+H4C3,gene,4.161,high,4.161,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+H2BC4,gene,4.0957,high,4.0957,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+CD93,gene,4.0914,high,4.0914,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+LHPP,gene,4.0759,high,4.0759,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
+H1-4,gene,4.0228,high,4.0228,image-derived molecular signature target,Phase 15G frozen image-to-gene/pathway Ridge model
