@@ -763,6 +763,16 @@ def handle_wsi_path_inference(wsi_path: str, max_patches: int = 100, run_model: 
                 "clinical_relevance_report_url": _result_file_url(molecular.get("clinical_relevance_report_md"), run_dir),
             }
 
+            vis = extract_res.get("visualizations", {})
+            response["result_files"].update({
+                "wsi_thumbnail_url": _result_file_url(vis.get("wsi_thumbnail_path"), run_dir) if vis.get("wsi_thumbnail_path") else None,
+                "wsi_tissue_mask_url": _result_file_url(vis.get("wsi_tissue_mask_path"), run_dir) if vis.get("wsi_tissue_mask_path") else None,
+                "wsi_patch_overlay_url": _result_file_url(vis.get("wsi_patch_overlay_path"), run_dir) if vis.get("wsi_patch_overlay_path") else None,
+                "wsi_coordinate_mosaic_url": _result_file_url(vis.get("wsi_coordinate_mosaic_path"), run_dir) if vis.get("wsi_coordinate_mosaic_path") else None,
+                "wsi_spatial_contact_sheet_url": _result_file_url(vis.get("wsi_spatial_contact_sheet_path"), run_dir) if vis.get("wsi_spatial_contact_sheet_path") else None,
+                "wsi_visualization_summary_url": _result_file_url(vis.get("wsi_visualization_summary_path"), run_dir) if vis.get("wsi_visualization_summary_path") else None,
+            })
+
             if emb_csv.exists():
                 response["result_files"].update({
                     "gene_pathway_predictions_url": _result_file_url(gene_pathway_out["predictions_csv"], run_dir),
@@ -773,6 +783,15 @@ def handle_wsi_path_inference(wsi_path: str, max_patches: int = 100, run_model: 
                 })
                 
         else:
+            vis = extract_res.get("visualizations", {})
+            response["result_files"] = {
+                "wsi_thumbnail_url": _result_file_url(vis.get("wsi_thumbnail_path"), run_dir) if vis.get("wsi_thumbnail_path") else None,
+                "wsi_tissue_mask_url": _result_file_url(vis.get("wsi_tissue_mask_path"), run_dir) if vis.get("wsi_tissue_mask_path") else None,
+                "wsi_patch_overlay_url": _result_file_url(vis.get("wsi_patch_overlay_path"), run_dir) if vis.get("wsi_patch_overlay_path") else None,
+                "wsi_coordinate_mosaic_url": _result_file_url(vis.get("wsi_coordinate_mosaic_path"), run_dir) if vis.get("wsi_coordinate_mosaic_path") else None,
+                "wsi_spatial_contact_sheet_url": _result_file_url(vis.get("wsi_spatial_contact_sheet_path"), run_dir) if vis.get("wsi_spatial_contact_sheet_path") else None,
+                "wsi_visualization_summary_url": _result_file_url(vis.get("wsi_visualization_summary_path"), run_dir) if vis.get("wsi_visualization_summary_path") else None,
+            }
             response["status"] = "extracted"
             response["note"] = "WSI patches extracted. Set run_model=true to run inference."
 

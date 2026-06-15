@@ -132,7 +132,84 @@ function ExecutiveSummary({ data }: { data: PatchApiResponse }) {
   );
 }
 
-// ── 2. Predicted Molecular Output table ──────────────────────────────────
+// ── 2. Spatial WSI Patch Visualization ────────────────────────────────────
+
+function SpatialWsiVisualization({ files }: { files: PatchResultFiles }) {
+  if (!files.wsi_patch_overlay_url && !files.wsi_coordinate_mosaic_url) return null;
+
+  return (
+    <div className="report-section">
+      <SectionHeader num="2" title="Spatial WSI Patch Visualization" />
+      
+      <p style={{ fontSize: "0.79rem", color: "var(--text-secondary)", lineHeight: 1.65, marginBottom: 14 }}>
+        These visualizations preserve approximate patch coordinates from the original WSI. This is different from the RNA retrieval canvas, which does not reconstruct WSI spatial layout.
+      </p>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 20, marginBottom: 20 }}>
+        {files.wsi_patch_overlay_url && (
+          <div style={{ flex: "1 1 300px", minWidth: 300 }}>
+            <div className="stat-label" style={{ marginBottom: 8 }}>Patch overlay on WSI thumbnail</div>
+            <a href={absUrl(files.wsi_patch_overlay_url) ?? "#"} target="_blank" rel="noopener noreferrer">
+              <img
+                src={absUrl(files.wsi_patch_overlay_url) ?? ""}
+                alt="WSI Patch Overlay"
+                style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }}
+              />
+            </a>
+          </div>
+        )}
+        {files.wsi_coordinate_mosaic_url && (
+          <div style={{ flex: "1 1 300px", minWidth: 300 }}>
+            <div className="stat-label" style={{ marginBottom: 8 }}>Coordinate-aware patch mosaic</div>
+            <a href={absUrl(files.wsi_coordinate_mosaic_url) ?? "#"} target="_blank" rel="noopener noreferrer">
+              <img
+                src={absUrl(files.wsi_coordinate_mosaic_url) ?? ""}
+                alt="WSI Coordinate Mosaic"
+                style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }}
+              />
+            </a>
+          </div>
+        )}
+      </div>
+
+      {(files.wsi_thumbnail_url || files.wsi_tissue_mask_url || files.wsi_spatial_contact_sheet_url) && (
+        <details>
+          <summary style={{ cursor: "pointer", fontSize: "0.73rem", color: "var(--text-muted)", userSelect: "none", marginBottom: 8 }}>
+            ▸ Advanced visual outputs
+          </summary>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 15, marginTop: 10 }}>
+            {files.wsi_thumbnail_url && (
+              <div style={{ flex: "1 1 200px" }}>
+                <div className="stat-label" style={{ marginBottom: 6 }}>WSI Thumbnail</div>
+                <a href={absUrl(files.wsi_thumbnail_url) ?? "#"} target="_blank" rel="noopener noreferrer">
+                  <img src={absUrl(files.wsi_thumbnail_url) ?? ""} alt="Thumbnail" style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }} />
+                </a>
+              </div>
+            )}
+            {files.wsi_tissue_mask_url && (
+              <div style={{ flex: "1 1 200px" }}>
+                <div className="stat-label" style={{ marginBottom: 6 }}>Tissue Mask</div>
+                <a href={absUrl(files.wsi_tissue_mask_url) ?? "#"} target="_blank" rel="noopener noreferrer">
+                  <img src={absUrl(files.wsi_tissue_mask_url) ?? ""} alt="Mask" style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }} />
+                </a>
+              </div>
+            )}
+            {files.wsi_spatial_contact_sheet_url && (
+              <div style={{ flex: "1 1 200px" }}>
+                <div className="stat-label" style={{ marginBottom: 6 }}>Spatial Contact Sheet</div>
+                <a href={absUrl(files.wsi_spatial_contact_sheet_url) ?? "#"} target="_blank" rel="noopener noreferrer">
+                  <img src={absUrl(files.wsi_spatial_contact_sheet_url) ?? ""} alt="Contact Sheet" style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }} />
+                </a>
+              </div>
+            )}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+// ── 3. Predicted Molecular Output table ──────────────────────────────────
 
 function MolecularTable({ mol, isWsi }: { mol: PatchMolecularOutput; isWsi: boolean }) {
   const features: PatchTopFeature[] = mol.top_features ?? [];
@@ -140,7 +217,7 @@ function MolecularTable({ mol, isWsi }: { mol: PatchMolecularOutput; isWsi: bool
   return (
     <div className="report-section">
       <SectionHeader
-        num="2"
+        num="3"
         title={isWsi ? "Predicted Gene / Pathway Expression Output from WSI" : "Predicted Gene / Pathway Expression Output from Image"}
         subtitle="gene-expression-like signature — not measured RNA-seq"
       />
@@ -229,7 +306,7 @@ function ClinicalRelevanceSection({ cr }: { cr: PatchClinicalRelevance }) {
 
   return (
     <div className="report-section">
-      <SectionHeader num="3" title="Clinical / Research Relevance" />
+      <SectionHeader num="4" title="Clinical / Research Relevance" />
 
       {/* Direction badge */}
       {cr.research_direction && (
@@ -291,7 +368,7 @@ function ClinicalRelevanceSection({ cr }: { cr: PatchClinicalRelevance }) {
 function DownloadsSection({ files }: { files: PatchResultFiles }) {
   return (
     <div className="report-section">
-      <SectionHeader num="4" title="Downloads" />
+      <SectionHeader num="5" title="Downloads" />
 
       {/* Main downloads */}
       <div className="dl-group" style={{ marginBottom: 14 }}>
@@ -329,6 +406,25 @@ function DownloadsSection({ files }: { files: PatchResultFiles }) {
           )}
         </div>
       </div>
+
+      {/* WSI spatial visualizations */}
+      {(files.wsi_patch_overlay_url || files.wsi_coordinate_mosaic_url) && (
+        <div className="dl-group" style={{ marginBottom: 14 }}>
+          <div className="dl-group-label">Spatial WSI Visualizations</div>
+          <div className="dl-group-links">
+            {files.wsi_patch_overlay_url && (
+              <a className="dl-link dl-link-primary" href={absUrl(files.wsi_patch_overlay_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-wsi-patch-overlay">
+                🖼️ WSI Patch Overlay
+              </a>
+            )}
+            {files.wsi_coordinate_mosaic_url && (
+              <a className="dl-link dl-link-primary" href={absUrl(files.wsi_coordinate_mosaic_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-wsi-coord-mosaic">
+                🖼️ Coordinate-aware Patch Mosaic
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Advanced / developer downloads */}
       <details>
@@ -374,6 +470,26 @@ function DownloadsSection({ files }: { files: PatchResultFiles }) {
               🏥 Clinical Relevance JSON
             </a>
           )}
+          {files.wsi_thumbnail_url && (
+            <a className="dl-link" href={absUrl(files.wsi_thumbnail_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-wsi-thumb">
+              🖼️ WSI Thumbnail
+            </a>
+          )}
+          {files.wsi_tissue_mask_url && (
+            <a className="dl-link" href={absUrl(files.wsi_tissue_mask_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-wsi-mask">
+              🖼️ Tissue Mask
+            </a>
+          )}
+          {files.wsi_spatial_contact_sheet_url && (
+            <a className="dl-link" href={absUrl(files.wsi_spatial_contact_sheet_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-wsi-contact-sheet">
+              🖼️ Spatial Contact Sheet
+            </a>
+          )}
+          {files.wsi_visualization_summary_url && (
+            <a className="dl-link" href={absUrl(files.wsi_visualization_summary_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-wsi-vis-summary">
+              📋 Visualization Summary JSON
+            </a>
+          )}
         </div>
       </details>
     </div>
@@ -404,13 +520,16 @@ export default function PatchResultReport({ data }: Props) {
         {/* 1 — Executive Summary */}
         <ExecutiveSummary data={data} />
 
-        {/* 2 — Molecular Output Table */}
+        {/* 2 — Spatial WSI Visualization */}
+        {files && <SpatialWsiVisualization files={files} />}
+
+        {/* 3 — Molecular Output Table */}
         {mol && <MolecularTable mol={mol} isWsi={!!data.wsi_extraction} />}
 
-        {/* 3 — Clinical / Research Relevance */}
+        {/* 4 — Clinical / Research Relevance */}
         {cr && <ClinicalRelevanceSection cr={cr} />}
 
-        {/* 4 — Downloads */}
+        {/* 5 — Downloads */}
         {files && <DownloadsSection files={files} />}
 
         {/* Developer details — collapsible at bottom */}

@@ -30,6 +30,12 @@ export interface PatchResultFiles {
   gene_pathway_predictions_url?: string | null;
   gene_pathway_top_features_url?: string | null;
   gene_pathway_report_url?: string | null;
+  wsi_thumbnail_url?: string | null;
+  wsi_tissue_mask_url?: string | null;
+  wsi_patch_overlay_url?: string | null;
+  wsi_coordinate_mosaic_url?: string | null;
+  wsi_spatial_contact_sheet_url?: string | null;
+  wsi_visualization_summary_url?: string | null;
 }
 
 export interface PatchTopFeature {
