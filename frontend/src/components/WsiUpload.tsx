@@ -24,7 +24,7 @@ interface Props {
 
 export default function WsiUpload({ onResult, onRunStart }: Props) {
   const [wsiPath, setWsiPath] = useState("");
-  const [maxPatches, setMaxPatches] = useState(20);
+  const [maxPatches, setMaxPatches] = useState(300);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -141,8 +141,44 @@ export default function WsiUpload({ onResult, onRunStart }: Props) {
               borderRadius: "var(--r-sm)",
               color: "var(--text-primary)",
               fontSize: "0.85rem",
+              marginBottom: 8,
             }}
           />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+            {[
+              { val: 20, label: "20 = Fast test" },
+              { val: 100, label: "100 = Quick demo" },
+              { val: 300, label: "300 = Recommended" },
+              { val: 500, label: "500 = Extended" },
+            ].map((preset) => (
+              <button
+                key={preset.val}
+                type="button"
+                className="btn btn-ghost"
+                style={{
+                  fontSize: "0.75rem",
+                  padding: "4px 8px",
+                  border: maxPatches === preset.val ? "1px solid var(--border-bright)" : "1px solid transparent",
+                  background: maxPatches === preset.val ? "var(--bg-base)" : "transparent",
+                }}
+                onClick={() => setMaxPatches(preset.val)}
+                disabled={loading}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
+            Recommended: 300 patches for supervisor demo. Higher values increase runtime and output size.
+          </p>
+          {maxPatches > 500 && (
+            <div className="warning-banner" style={{ marginTop: 8 }}>
+              <span className="warning-icon">⚠️</span>
+              <p className="warning-text">
+                Large patch counts may slow WSI extraction, embedding, and browser rendering. Use 100–300 for live demos.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="btn-row">

@@ -145,10 +145,22 @@ function SpatialWsiVisualization({ files }: { files: PatchResultFiles }) {
         These visualizations preserve approximate patch coordinates from the original WSI. This is different from the RNA retrieval canvas, which does not reconstruct WSI spatial layout.
       </p>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 20, marginBottom: 20 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
+        {files.wsi_thumbnail_url && (
+          <div style={{ flex: "1 1 240px", minWidth: 200 }}>
+            <div className="stat-label" style={{ marginBottom: 6 }}>WSI overview</div>
+            <a href={absUrl(files.wsi_thumbnail_url) ?? "#"} target="_blank" rel="noopener noreferrer">
+              <img
+                src={absUrl(files.wsi_thumbnail_url) ?? ""}
+                alt="WSI Overview"
+                style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }}
+              />
+            </a>
+          </div>
+        )}
         {files.wsi_patch_overlay_url && (
-          <div style={{ flex: "1 1 300px", minWidth: 300 }}>
-            <div className="stat-label" style={{ marginBottom: 8 }}>Patch overlay on WSI thumbnail</div>
+          <div style={{ flex: "1 1 240px", minWidth: 200 }}>
+            <div className="stat-label" style={{ marginBottom: 6 }}>Patch locations</div>
             <a href={absUrl(files.wsi_patch_overlay_url) ?? "#"} target="_blank" rel="noopener noreferrer">
               <img
                 src={absUrl(files.wsi_patch_overlay_url) ?? ""}
@@ -159,8 +171,8 @@ function SpatialWsiVisualization({ files }: { files: PatchResultFiles }) {
           </div>
         )}
         {files.wsi_coordinate_mosaic_url && (
-          <div style={{ flex: "1 1 300px", minWidth: 300 }}>
-            <div className="stat-label" style={{ marginBottom: 8 }}>Coordinate-aware patch mosaic</div>
+          <div style={{ flex: "1 1 240px", minWidth: 200 }}>
+            <div className="stat-label" style={{ marginBottom: 6 }}>Coordinate-aware patch mosaic</div>
             <a href={absUrl(files.wsi_coordinate_mosaic_url) ?? "#"} target="_blank" rel="noopener noreferrer">
               <img
                 src={absUrl(files.wsi_coordinate_mosaic_url) ?? ""}
@@ -172,20 +184,12 @@ function SpatialWsiVisualization({ files }: { files: PatchResultFiles }) {
         )}
       </div>
 
-      {(files.wsi_thumbnail_url || files.wsi_tissue_mask_url || files.wsi_spatial_contact_sheet_url) && (
+      {(files.wsi_tissue_mask_url || files.wsi_spatial_contact_sheet_url || files.wsi_visualization_summary_url) && (
         <details>
           <summary style={{ cursor: "pointer", fontSize: "0.73rem", color: "var(--text-muted)", userSelect: "none", marginBottom: 8 }}>
             ▸ Advanced visual outputs
           </summary>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 15, marginTop: 10 }}>
-            {files.wsi_thumbnail_url && (
-              <div style={{ flex: "1 1 200px" }}>
-                <div className="stat-label" style={{ marginBottom: 6 }}>WSI Thumbnail</div>
-                <a href={absUrl(files.wsi_thumbnail_url) ?? "#"} target="_blank" rel="noopener noreferrer">
-                  <img src={absUrl(files.wsi_thumbnail_url) ?? ""} alt="Thumbnail" style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }} />
-                </a>
-              </div>
-            )}
             {files.wsi_tissue_mask_url && (
               <div style={{ flex: "1 1 200px" }}>
                 <div className="stat-label" style={{ marginBottom: 6 }}>Tissue Mask</div>
@@ -203,6 +207,13 @@ function SpatialWsiVisualization({ files }: { files: PatchResultFiles }) {
               </div>
             )}
           </div>
+          {files.wsi_visualization_summary_url && (
+            <div style={{ marginTop: 10 }}>
+              <a className="dl-link" href={absUrl(files.wsi_visualization_summary_url) ?? "#"} target="_blank" rel="noopener noreferrer">
+                📋 Visualization Summary JSON
+              </a>
+            </div>
+          )}
         </details>
       )}
     </div>
@@ -374,11 +385,6 @@ function DownloadsSection({ files }: { files: PatchResultFiles }) {
       <div className="dl-group" style={{ marginBottom: 14 }}>
         <div className="dl-group-label">Main results</div>
         <div className="dl-group-links">
-          {files.report_url && (
-            <a className="dl-link dl-link-primary" href={absUrl(files.report_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-patch-report">
-              📄 Inference Report
-            </a>
-          )}
           {files.gene_expression_matrix_url && (
             <a className="dl-link dl-link-primary" href={absUrl(files.gene_expression_matrix_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-gene-matrix">
               ⬇ Full Predicted Gene Expression Matrix
@@ -391,7 +397,7 @@ function DownloadsSection({ files }: { files: PatchResultFiles }) {
           )}
           {files.gene_pathway_top_features_url && (
             <a className="dl-link dl-link-primary" href={absUrl(files.gene_pathway_top_features_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-gene-top-features">
-              ⬇ Top Gene/Pathway Features
+              ⬇ Top Features CSV
             </a>
           )}
           {files.gene_pathway_report_url && (
@@ -407,24 +413,7 @@ function DownloadsSection({ files }: { files: PatchResultFiles }) {
         </div>
       </div>
 
-      {/* WSI spatial visualizations */}
-      {(files.wsi_patch_overlay_url || files.wsi_coordinate_mosaic_url) && (
-        <div className="dl-group" style={{ marginBottom: 14 }}>
-          <div className="dl-group-label">Spatial WSI Visualizations</div>
-          <div className="dl-group-links">
-            {files.wsi_patch_overlay_url && (
-              <a className="dl-link dl-link-primary" href={absUrl(files.wsi_patch_overlay_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-wsi-patch-overlay">
-                🖼️ WSI Patch Overlay
-              </a>
-            )}
-            {files.wsi_coordinate_mosaic_url && (
-              <a className="dl-link dl-link-primary" href={absUrl(files.wsi_coordinate_mosaic_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-wsi-coord-mosaic">
-                🖼️ Coordinate-aware Patch Mosaic
-              </a>
-            )}
-          </div>
-        </div>
-      )}
+
 
       {/* Advanced / developer downloads */}
       <details>
@@ -442,7 +431,7 @@ function DownloadsSection({ files }: { files: PatchResultFiles }) {
         <div className="dl-group-links" style={{ marginTop: 8 }}>
           {files.prediction_url && (
             <a className="dl-link" href={absUrl(files.prediction_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-patch-prediction">
-              ⬇ Prediction CSV
+              ⬇ Patch Prediction CSV
             </a>
           )}
           {files.embedding_url && (
@@ -450,24 +439,14 @@ function DownloadsSection({ files }: { files: PatchResultFiles }) {
               ⬇ Mean Embedding CSV
             </a>
           )}
-          {files.molecular_top_features_url && (
-            <a className="dl-link" href={absUrl(files.molecular_top_features_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-legacy-top-features">
-              ⬇ Legacy Rule-based Top Features
-            </a>
-          )}
           {files.molecular_json_url && (
             <a className="dl-link" href={absUrl(files.molecular_json_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-molecular-json">
-              🧬 Legacy Rule-based Molecular JSON
+              🧬 Molecular JSON
             </a>
           )}
           {files.molecular_report_url && (
             <a className="dl-link" href={absUrl(files.molecular_report_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-molecular-report">
-              📋 Legacy Rule-based Molecular Report
-            </a>
-          )}
-          {files.clinical_relevance_json_url && (
-            <a className="dl-link" href={absUrl(files.clinical_relevance_json_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-clin-relevance-json">
-              🏥 Clinical Relevance JSON
+              📋 Molecular Report
             </a>
           )}
           {files.wsi_thumbnail_url && (
@@ -478,6 +457,16 @@ function DownloadsSection({ files }: { files: PatchResultFiles }) {
           {files.wsi_tissue_mask_url && (
             <a className="dl-link" href={absUrl(files.wsi_tissue_mask_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-wsi-mask">
               🖼️ Tissue Mask
+            </a>
+          )}
+          {files.wsi_patch_overlay_url && (
+            <a className="dl-link" href={absUrl(files.wsi_patch_overlay_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-wsi-overlay">
+              🖼️ Patch Overlay
+            </a>
+          )}
+          {files.wsi_coordinate_mosaic_url && (
+            <a className="dl-link" href={absUrl(files.wsi_coordinate_mosaic_url) ?? "#"} target="_blank" rel="noopener noreferrer" id="dl-wsi-mosaic">
+              🖼️ Coordinate Mosaic
             </a>
           )}
           {files.wsi_spatial_contact_sheet_url && (
