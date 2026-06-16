@@ -93,7 +93,7 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [runModel, setRunModel] = useState(true);
   const [makeCanvas, setMakeCanvas] = useState(false);
-  const [runReferenceMorphology, setRunReferenceMorphology] = useState(true);
+  const [runReferenceMorphology, setRunReferenceMorphology] = useState(false);
   const [maxCases, setMaxCases] = useState<number>(1);
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [batchRefMorphN, setBatchRefMorphN] = useState(3);
