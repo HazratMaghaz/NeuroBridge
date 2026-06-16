@@ -179,16 +179,103 @@ function ClinicalRelevancePanel({ cr }: { cr: ClinicalRelevance }) {
   );
 }
 
-// ── Grouped downloads ─────────────────────────────────────────────────────
+// ── Reference Morphology Retrieval ────────────────────────────────────────
 
-function DownloadsSection({
+function ReferenceMorphologyPanel({
+  refMorph,
   files,
 }: {
+  refMorph: NonNullable<RnaApiResponse["reference_morphology"]>;
   files: NonNullable<RnaApiResponse["result_files"]>;
 }) {
   return (
     <div className="report-section">
-      <SectionHeader num={files.canvas_files && files.canvas_files.length > 0 ? "3" : "3"} title="Downloads" />
+      <SectionHeader num="3" title="Advanced Reference Morphology Retrieval" />
+      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: 10 }}>
+        RNA-guided retrieval of reference histology patches with known WSI coordinates.
+      </p>
+
+      <div className="info-box" role="alert" style={{ marginBottom: 14, backgroundColor: "rgba(245, 158, 11, 0.1)", borderLeft: "4px solid var(--amber-500)" }}>
+        ⚠ <strong>Warning:</strong> {refMorph.warning || "This is not a generated WSI and not RNA-to-WSI reconstruction. Coordinates belong to retrieved reference WSIs from the internal patch bank."}
+      </div>
+
+      <div className="result-grid" style={{ marginBottom: 16 }}>
+        <div className="stat-block">
+          <div className="stat-label">Best Similarity</div>
+          <div className="stat-value">{refMorph.best_similarity_score?.toFixed(4) || "—"}</div>
+        </div>
+        <div className="stat-block">
+          <div className="stat-label">Mean Top Similarity</div>
+          <div className="stat-value">{refMorph.mean_top_similarity_score?.toFixed(4) || "—"}</div>
+        </div>
+        <div className="stat-block">
+          <div className="stat-label">Patches Extracted</div>
+          <div className="stat-value">{refMorph.patch_images_extracted || 0}</div>
+        </div>
+        <div className="stat-block">
+          <div className="stat-label">Source Slides</div>
+          <div className="stat-value">{refMorph.unique_source_slides || 0}</div>
+        </div>
+      </div>
+
+      {/* Visual Cards */}
+      <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 10, marginBottom: 16 }}>
+        {files.reference_morphology_top_panel_url && (
+          <div style={{ flex: "0 0 300px", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: 8, background: "var(--bg-base)" }}>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 6 }}>Top retrieved morphology patches</div>
+            <img src={absUrl(files.reference_morphology_top_panel_url) || ""} alt="Top Patches" style={{ width: "100%", borderRadius: 4 }} />
+            <a href={absUrl(files.reference_morphology_top_panel_url) || "#"} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: "block", textAlign: "center", marginTop: 8, fontSize: "0.75rem" }}>⬇ Download Image</a>
+          </div>
+        )}
+        {files.reference_morphology_source_panel_url && (
+          <div style={{ flex: "0 0 300px", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: 8, background: "var(--bg-base)" }}>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 6 }}>Source-grouped reference patches</div>
+            <img src={absUrl(files.reference_morphology_source_panel_url) || ""} alt="Source Grouped Patches" style={{ width: "100%", borderRadius: 4 }} />
+            <a href={absUrl(files.reference_morphology_source_panel_url) || "#"} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: "block", textAlign: "center", marginTop: 8, fontSize: "0.75rem" }}>⬇ Download Image</a>
+          </div>
+        )}
+        {files.reference_morphology_coordinate_layout_url && (
+          <div style={{ flex: "0 0 300px", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: 8, background: "var(--bg-base)" }}>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 6 }}>Reference-coordinate layout</div>
+            <img src={absUrl(files.reference_morphology_coordinate_layout_url) || ""} alt="Coordinate Layout" style={{ width: "100%", borderRadius: 4 }} />
+            <a href={absUrl(files.reference_morphology_coordinate_layout_url) || "#"} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: "block", textAlign: "center", marginTop: 8, fontSize: "0.75rem" }}>⬇ Download Image</a>
+          </div>
+        )}
+      </div>
+
+      {/* Downloads */}
+      <div className="dl-group" style={{ marginBottom: 0 }}>
+        <div className="dl-group-label">Reference Morphology Data</div>
+        <div className="dl-group-links">
+          {files.reference_morphology_retrieval_csv_url && (
+            <a className="dl-link" href={absUrl(files.reference_morphology_retrieval_csv_url) || "#"} target="_blank" rel="noopener noreferrer">
+              ⬇ Retrieval CSV
+            </a>
+          )}
+          {files.reference_morphology_summary_url && (
+            <a className="dl-link" href={absUrl(files.reference_morphology_summary_url) || "#"} target="_blank" rel="noopener noreferrer">
+              📄 Summary JSON
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Grouped downloads ─────────────────────────────────────────────────────
+
+function DownloadsSection({
+  files,
+  hasRefMorph,
+}: {
+  files: NonNullable<RnaApiResponse["result_files"]>;
+  hasRefMorph: boolean;
+}) {
+  const sectionNum = hasRefMorph ? "4" : (files.canvas_files && files.canvas_files.length > 0 ? "3" : "3");
+  return (
+    <div className="report-section">
+      <SectionHeader num={sectionNum} title="Downloads" />
 
       {/* Main downloads */}
       <div className="dl-group" style={{ marginBottom: 14 }}>
@@ -388,8 +475,13 @@ export default function ResultCard({ data }: Props) {
         <ClinicalRelevancePanel cr={data.clinical_relevance} />
       )}
 
-      {/* ── 3. Downloads ─────────────────────────────────────────────────── */}
-      {files && <DownloadsSection files={files} />}
+      {/* ── 3. Reference Morphology ──────────────────────────────────────── */}
+      {data.reference_morphology && files && (
+        <ReferenceMorphologyPanel refMorph={data.reference_morphology} files={files} />
+      )}
+
+      {/* ── 4. Downloads ─────────────────────────────────────────────────── */}
+      {files && <DownloadsSection files={files} hasRefMorph={!!data.reference_morphology} />}
 
       {/* ── Developer details ─────────────────────────────────────────────── */}
       <details className="dev-details">

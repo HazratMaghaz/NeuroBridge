@@ -419,6 +419,7 @@ async def handle_rna_upload(
     run_model: bool = True,
     make_canvas: bool = False,
     max_cases: int | None = None,
+    run_reference_morphology: bool = False,
 ) -> dict:
     """
     Save uploaded RNA CSV and optionally run real frozen Phase 14 RNA inference.
@@ -493,6 +494,38 @@ async def handle_rna_upload(
                         "retrieval_csv_url": _result_file_url(row.get("retrieval_csv"), run_dir),
                         "note": row.get("note"),
                     })
+
+            if run_reference_morphology and result.get("predicted_image_embeddings"):
+                # Run for the first case
+                pid, emb = list(result["predicted_image_embeddings"].items())[0]
+                from cns_multimodalai.inference.rna_reference_morphology_retrieval import run_reference_morphology_retrieval
+                ref_out_dir = run_dir / "inference" / "reference_morphology"
+                ref_summary = run_reference_morphology_retrieval(
+                    query_embedding=emb,
+                    query_patient_id=pid,
+                    output_dir=ref_out_dir,
+                    top_k=100,
+                    max_patch_images=40,
+                )
+                
+                response["reference_morphology"] = {
+                    "status": ref_summary.get("status", "failed"),
+                    "method": ref_summary.get("method"),
+                    "top_k": ref_summary.get("top_k"),
+                    "patch_images_extracted": ref_summary.get("patch_images_extracted"),
+                    "unique_source_slides": ref_summary.get("unique_source_slides"),
+                    "best_similarity_score": ref_summary.get("best_similarity_score"),
+                    "mean_top_similarity_score": ref_summary.get("mean_top_similarity_score"),
+                    "warning": ref_summary.get("warning"),
+                }
+                
+                result_files.update({
+                    "reference_morphology_top_panel_url": _result_file_url(ref_summary.get("top_panel"), run_dir) if ref_summary.get("top_panel") else None,
+                    "reference_morphology_source_panel_url": _result_file_url(ref_summary.get("source_panel"), run_dir) if ref_summary.get("source_panel") else None,
+                    "reference_morphology_coordinate_layout_url": _result_file_url(ref_summary.get("coordinate_layout"), run_dir) if ref_summary.get("coordinate_layout") else None,
+                    "reference_morphology_retrieval_csv_url": _result_file_url(ref_summary.get("retrieval_csv"), run_dir) if ref_summary.get("retrieval_csv") else None,
+                    "reference_morphology_summary_url": _result_file_url(ref_out_dir / "reference_morphology_summary.json", run_dir) if (ref_out_dir / "reference_morphology_summary.json").exists() else None,
+                })
 
             response["result_files"] = result_files
 

@@ -74,6 +74,18 @@ def run_rna_inference(
         canvas_index.to_csv(canvas_index_path, index=False)
         result["canvas_index_csv"] = str(canvas_index_path)
 
+    # Always generate and return embedding if not making canvas
+    if "pred_img" not in locals():
+        mol2img = train_molecular_to_image_model(data)
+        pred_img = predict_image_embedding_from_rna(data, mol2img)
+
+    # Save patient embeddings to a dict
+    result["predicted_image_embeddings"] = {}
+    patient_to_idx = {pid: i for i, pid in enumerate(data["external_patient_ids"])}
+    for pid in pred_df["patient_id"].tolist():
+        idx = patient_to_idx[pid]
+        result["predicted_image_embeddings"][pid] = pred_img[idx]
+
     report_path = output_dir / "rna_inference_report.md"
     generate_markdown_report(
         title="CNS-MultiModalAI RNA Inference Report",

@@ -17,7 +17,19 @@ export interface RnaApiResponse {
   prediction_preview?: PredictionRow[];
   result_files?: ResultFiles;
   clinical_relevance?: ClinicalRelevance | null;
+  reference_morphology?: ReferenceMorphology | null;
   error?: string;
+}
+
+export interface ReferenceMorphology {
+  status: string;
+  method: string;
+  top_k: number;
+  patch_images_extracted: number;
+  unique_source_slides: number;
+  best_similarity_score: number;
+  mean_top_similarity_score: number;
+  warning: string;
 }
 
 export interface ClinicalRelevance {
@@ -45,6 +57,11 @@ export interface ResultFiles {
   report_url?: string | null;
   canvas_index_url?: string | null;
   canvas_files?: CanvasFile[];
+  reference_morphology_top_panel_url?: string | null;
+  reference_morphology_source_panel_url?: string | null;
+  reference_morphology_coordinate_layout_url?: string | null;
+  reference_morphology_retrieval_csv_url?: string | null;
+  reference_morphology_summary_url?: string | null;
 }
 
 export interface CanvasFile {
@@ -76,6 +93,7 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [runModel, setRunModel] = useState(true);
   const [makeCanvas, setMakeCanvas] = useState(true);
+  const [runReferenceMorphology, setRunReferenceMorphology] = useState(true);
   const [maxCases, setMaxCases] = useState<number>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,6 +131,7 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
     fd.append("file", file);
     fd.append("run_model", String(runModel));
     fd.append("make_canvas", String(makeCanvas));
+    fd.append("run_reference_morphology", String(runReferenceMorphology));
     fd.append("max_cases", String(maxCases));
 
     try {
@@ -190,6 +209,16 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
               disabled={loading}
             />
             Generate morphology canvas
+          </label>
+          <label className="option-item" htmlFor="cb-run-ref-morph">
+            <input
+              id="cb-run-ref-morph"
+              type="checkbox"
+              checked={runReferenceMorphology}
+              onChange={(e) => setRunReferenceMorphology(e.target.checked)}
+              disabled={loading}
+            />
+            Run reference morphology retrieval
           </label>
           <label className="option-item" htmlFor="sel-max-cases">
             Max cases&nbsp;
