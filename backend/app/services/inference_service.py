@@ -27,20 +27,27 @@ def make_json_safe(obj):
     Recursively convert numpy/path objects into JSON-safe Python objects.
     Prevents FastAPI response failures caused by ndarray, np.float32, np.int64, Path, etc.
     """
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
+    if obj is None:
+        return None
 
-    if isinstance(obj, np.integer):
-        return int(obj)
+    # Handle anything with a .tolist() (ndarrays, tensors)
+    if hasattr(obj, "tolist") and callable(obj.tolist):
+        try:
+            return make_json_safe(obj.tolist())
+        except Exception:
+            pass
 
-    if isinstance(obj, np.floating):
+    type_str = str(type(obj)).lower()
+    
+    if 'float' in type_str and 'numpy' in type_str:
         return float(obj)
-
-    if isinstance(obj, np.bool_):
+    if 'int' in type_str and 'numpy' in type_str:
+        return int(obj)
+    if 'bool' in type_str and 'numpy' in type_str:
         return bool(obj)
-
-    if isinstance(obj, Path):
-        return str(obj)
+        
+    if isinstance(obj, (int, float, str, bool)):
+        return obj
 
     if isinstance(obj, dict):
         return {str(k): make_json_safe(v) for k, v in obj.items()}
@@ -48,7 +55,19 @@ def make_json_safe(obj):
     if isinstance(obj, (list, tuple, set)):
         return [make_json_safe(v) for v in obj]
 
-    return obj
+    if isinstance(obj, Path) or 'path' in type_str:
+        return str(obj)
+
+    if 'pandas' in type_str:
+        if hasattr(obj, 'to_dict'):
+            if 'dataframe' in type_str:
+                return make_json_safe(obj.to_dict(orient="records"))
+            elif 'series' in type_str:
+                return make_json_safe(obj.to_dict())
+        return str(obj)
+
+    # Fallback for unknown objects to prevent serialization errors
+    return str(obj)
 
 
 def remove_internal_arrays(result):
@@ -59,27 +78,34 @@ def remove_internal_arrays(result):
     if not isinstance(result, dict):
         return result
 
-    internal_keys = [
-        "_predicted_ctranspath_embedding",
-        "_predicted_image_embedding",
-        "_query_vector",
-        "predicted_ctranspath_embedding",
-        "predicted_image_embedding",
-        "query_vector",
-        "_predicted_image_embeddings",
-        "predicted_image_embeddings"
-    ]
+    keys_to_remove = []
+    for key, value in result.items():
+        key_str = str(key).lower()
+        
+        # Explicit name matches
+        if 'embedding' in key_str or 'vector' in key_str or 'ctranspath' in key_str:
+            keys_to_remove.append(key)
+            continue
+            
+        # Explicit type matches at top level
+        if hasattr(value, 'shape') and hasattr(value, 'tolist'):
+            keys_to_remove.append(key)
+            continue
+            
+        type_str = str(type(value)).lower()
+        if 'ndarray' in type_str or 'tensor' in type_str:
+            keys_to_remove.append(key)
 
-    for key in internal_keys:
+    for key in keys_to_remove:
         if key in result:
             value = result.pop(key)
             if isinstance(value, dict):
-                # result["_predicted_image_embeddings"] is a dict of patient_id -> ndarray
                 result[f"{key}_omitted"] = "Internal vectors omitted from API response."
-            elif isinstance(value, np.ndarray):
-                result[f"{key}_shape"] = list(value.shape)
-                result[f"{key}_omitted"] = "Internal vector omitted from API response."
             else:
+                try:
+                    result[f"{key}_shape"] = list(value.shape)
+                except Exception:
+                    pass
                 result[f"{key}_omitted"] = "Internal vector omitted from API response."
 
     return result
