@@ -769,44 +769,60 @@ interface Props {
 }
 
 export default function PatchUpload({ onResult, onRunStart }: Props) {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [isBatchMode, setIsBatchMode] = useState(false);
 
-  const handleFile = useCallback((f: File | null) => {
-    if (!f) return;
-    if (!f.name.toLowerCase().endsWith(".zip")) {
-      setError("Please select a .zip archive.");
-      return;
-    }
-    setError(null);
-    setFile(f);
-  }, []);
+  const handleFiles = useCallback(
+    (newFiles: FileList | File[] | null) => {
+      if (!newFiles || newFiles.length === 0) return;
+      const validFiles = Array.from(newFiles).filter((f) =>
+        f.name.toLowerCase().endsWith(".zip")
+      );
+      
+      if (validFiles.length === 0) {
+        setError("Please select at least one .zip archive.");
+        return;
+      }
+      
+      setError(null);
+      if (isBatchMode) {
+        setFiles((prev) => [...prev, ...validFiles]);
+      } else {
+        setFiles([validFiles[0]]);
+      }
+    },
+    [isBatchMode]
+  );
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragOver(false);
-      handleFile(e.dataTransfer.files[0] ?? null);
+      handleFiles(e.dataTransfer.files);
     },
-    [handleFile]
+    [handleFiles]
   );
+  
+  const removeFile = (idx: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!file) {
+    if (files.length === 0) {
       setError("No file selected.");
       return;
     }
 
     setLoading(true);
     setError(null);
-    onRunStart?.(file.name);
+    onRunStart?.(isBatchMode ? `Batch (${files.length} ZIPs)` : files[0].name);
 
     const fd = new FormData();
-    fd.append("file", file);
+    files.forEach((f) => fd.append(isBatchMode ? "files" : "file", f));
     fd.append("run_model", "true");
 
     try {
@@ -844,7 +860,7 @@ export default function PatchUpload({ onResult, onRunStart }: Props) {
         {/* Mode Selector */}
         <div style={{ marginBottom: 16, display: "flex", gap: 12 }}>
           <label className="option-item" style={{ cursor: "pointer" }}>
-            <input type="radio" name="patchMode" checked={!isBatchMode} onChange={() => setIsBatchMode(false)} disabled={loading} />
+            <input type="radio" name="patchMode" checked={!isBatchMode} onChange={() => { setIsBatchMode(false); setFiles(files.slice(0, 1)); }} disabled={loading} />
             Single ZIP
           </label>
           <label className="option-item" style={{ cursor: "pointer" }}>
@@ -875,23 +891,43 @@ export default function PatchUpload({ onResult, onRunStart }: Props) {
               id="patch-file-input"
               type="file"
               accept=".zip"
-              onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+              multiple={isBatchMode}
+              onChange={(e) => handleFiles(e.target.files)}
               disabled={loading}
               aria-label="Select patch ZIP file"
             />
             <div className="upload-icon">🗜️</div>
             <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-              Drag &amp; drop or{" "}
-              <strong style={{ color: "var(--teal-400)" }}>browse</strong> for a
-              ZIP
+              Drag &amp; drop or <strong style={{ color: "var(--teal-400)" }}>browse</strong> for {isBatchMode ? "ZIP archives" : "a ZIP archive"}
             </div>
             <div className="upload-hint">
               .jpg/.png/.tif patches · max 2 GB
             </div>
-            {file && (
-              <div className="upload-filename">✓ {file.name}</div>
-            )}
           </div>
+
+          {/* Selected files list */}
+          {files.length > 0 && (
+            <div style={{ marginTop: 12, marginBottom: 16, background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-sm)", padding: "10px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-primary)" }}>
+                  Selected ZIPs ({files.length})
+                </div>
+                {isBatchMode && files.length > 1 && (
+                  <button type="button" onClick={() => setFiles([])} style={{ fontSize: "0.75rem", background: "none", border: "none", color: "var(--red-400)", cursor: "pointer", padding: 0 }}>
+                    Clear All
+                  </button>
+                )}
+              </div>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+                {files.map((f, idx) => (
+                  <li key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>✓ {f.name}</span>
+                    <button type="button" onClick={() => removeFile(idx)} style={{ fontSize: "0.75rem", background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "0 4px" }}>✕</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Buttons */}
           <div className="btn-row">
@@ -899,7 +935,7 @@ export default function PatchUpload({ onResult, onRunStart }: Props) {
               id="btn-run-patches"
               type="submit"
               className="btn btn-primary"
-              disabled={loading || !file}
+              disabled={loading || files.length === 0}
             >
               {loading ? (
                 <>

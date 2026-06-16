@@ -6,6 +6,7 @@ patch_json_encoder()
 RNA inference route for CNS-MultiModalAI GUI MVP.
 """
 
+from typing import List, Optional
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 
 from backend.app.services.inference_service import handle_rna_upload
@@ -45,16 +46,21 @@ async def infer_rna(
 
 @router.post("/rna/batch")
 async def infer_rna_batch(
-    file: UploadFile = File(..., description="RNA-seq expression CSV (multi-row)"),
+    files: Optional[List[UploadFile]] = File(None, description="Multiple RNA-seq expression CSVs"),
+    file: Optional[UploadFile] = File(None, description="Single RNA-seq expression CSV (multi-row)"),
     batch_ref_morph_n: int = Form(3, description="Run reference morphology retrieval for first N samples"),
     run_reference_morphology: bool = Form(False, description="Enable reference morphology retrieval"),
 ):
     """
     Batch processing for RNA-seq CSV containing multiple samples.
     """
+    uploaded_files = files or []
+    if file is not None:
+        uploaded_files.append(file)
+        
     try:
         return await handle_batch_rna_upload(
-            file=file,
+            files=uploaded_files,
             batch_ref_morph_n=batch_ref_morph_n,
             run_reference_morphology=run_reference_morphology,
         )

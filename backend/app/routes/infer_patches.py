@@ -2,6 +2,7 @@
 Patch ZIP upload route for CNS-MultiModalAI GUI MVP.
 """
 
+from typing import List, Optional
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 
 from backend.app.services.inference_service import handle_patch_upload
@@ -27,12 +28,17 @@ async def infer_patches(
 
 @router.post("/patches/batch")
 async def infer_patches_batch(
-    file: UploadFile = File(..., description="ZIP archive containing one subfolder per sample"),
+    files: Optional[List[UploadFile]] = File(None, description="Multiple ZIP archives of patches"),
+    file: Optional[UploadFile] = File(None, description="Single ZIP archive of patches"),
 ):
     """
-    Batch processing for a ZIP containing multiple sample folders.
+    Batch processing for ZIPs containing patch images.
     """
+    uploaded_files = files or []
+    if file is not None:
+        uploaded_files.append(file)
+        
     try:
-        return await handle_batch_patch_upload(file=file)
+        return await handle_batch_patch_upload(files=uploaded_files)
     except Exception as e:
         raise HTTPException(status_code=400, detail=repr(e)) from e

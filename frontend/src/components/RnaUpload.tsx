@@ -90,7 +90,7 @@ function isNetworkError(msg: string): boolean {
 }
 
 export default function RnaUpload({ onResult, onRunStart }: Props) {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [runModel, setRunModel] = useState(true);
   const [makeCanvas, setMakeCanvas] = useState(false);
   const [runReferenceMorphology, setRunReferenceMorphology] = useState(true);
@@ -101,36 +101,51 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  const handleFile = useCallback((f: File | null) => {
-    if (!f) return;
-    if (!f.name.toLowerCase().endsWith(".csv")) {
-      setError("Please select a .csv file.");
-      return;
-    }
-    setError(null);
-    setFile(f);
-  }, []);
+  const handleFiles = useCallback(
+    (newFiles: FileList | File[] | null) => {
+      if (!newFiles || newFiles.length === 0) return;
+      const validFiles = Array.from(newFiles).filter((f) =>
+        f.name.toLowerCase().endsWith(".csv")
+      );
+      
+      if (validFiles.length === 0) {
+        setError("Please select at least one .csv file.");
+        return;
+      }
+      
+      setError(null);
+      if (isBatchMode) {
+        setFiles((prev) => [...prev, ...validFiles]);
+      } else {
+        setFiles([validFiles[0]]);
+      }
+    },
+    [isBatchMode]
+  );
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragOver(false);
-      const dropped = e.dataTransfer.files[0] ?? null;
-      handleFile(dropped);
+      handleFiles(e.dataTransfer.files);
     },
-    [handleFile]
+    [handleFiles]
   );
+  
+  const removeFile = (idx: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!file) { setError("No file selected."); return; }
+    if (files.length === 0) { setError("No file selected."); return; }
 
     setLoading(true);
     setError(null);
-    onRunStart?.(file.name);
+    onRunStart?.(isBatchMode ? `Batch (${files.length} files)` : files[0].name);
 
     const fd = new FormData();
-    fd.append("file", file);
+    files.forEach((f) => fd.append(isBatchMode ? "files" : "file", f));
     fd.append("run_model", String(runModel));
     fd.append("run_reference_morphology", String(runReferenceMorphology));
     
@@ -174,7 +189,7 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
       {/* Mode Selector */}
       <div style={{ marginBottom: 16, display: "flex", gap: 12 }}>
         <label className="option-item" style={{ cursor: "pointer" }}>
-          <input type="radio" name="rnaMode" checked={!isBatchMode} onChange={() => setIsBatchMode(false)} disabled={loading} />
+          <input type="radio" name="rnaMode" checked={!isBatchMode} onChange={() => { setIsBatchMode(false); setFiles(files.slice(0, 1)); }} disabled={loading} />
           Single Sample
         </label>
         <label className="option-item" style={{ cursor: "pointer" }}>
@@ -195,17 +210,41 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
             id="rna-file-input"
             type="file"
             accept=".csv"
-            onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+            multiple={isBatchMode}
+            onChange={(e) => handleFiles(e.target.files)}
             disabled={loading}
             aria-label="Select RNA-seq CSV file"
           />
           <div className="upload-icon">📄</div>
           <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-            Drag &amp; drop or <strong style={{ color: "var(--teal-400)" }}>browse</strong> for a CSV
+            Drag &amp; drop or <strong style={{ color: "var(--teal-400)" }}>browse</strong> for {isBatchMode ? "CSV files" : "a CSV file"}
           </div>
           <div className="upload-hint">patient_id + Ensembl gene columns · max 500 MB</div>
-          {file && <div className="upload-filename">✓ {file.name}</div>}
         </div>
+
+        {/* Selected files list */}
+        {files.length > 0 && (
+          <div style={{ marginTop: 12, marginBottom: 16, background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--r-sm)", padding: "10px 14px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-primary)" }}>
+                Selected Files ({files.length})
+              </div>
+              {isBatchMode && files.length > 1 && (
+                <button type="button" onClick={() => setFiles([])} style={{ fontSize: "0.75rem", background: "none", border: "none", color: "var(--red-400)", cursor: "pointer", padding: 0 }}>
+                  Clear All
+                </button>
+              )}
+            </div>
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+              {files.map((f, idx) => (
+                <li key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>✓ {f.name}</span>
+                  <button type="button" onClick={() => removeFile(idx)} style={{ fontSize: "0.75rem", background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "0 4px" }}>✕</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Options */}
         <div className="option-row">

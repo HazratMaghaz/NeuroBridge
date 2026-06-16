@@ -155,7 +155,8 @@ export default function WsiUpload({ onResult, onRunStart }: Props) {
               CSV Manifest Upload
             </label>
             <div className="info-box info" style={{ marginBottom: 10 }}>
-              Manifest must contain columns: <code>sample_id, wsi_path, max_patches</code>.
+              Manifest must contain columns: <code>sample_id, wsi_path, max_patches</code>.<br/>
+              <em>One manifest CSV can contain many WSI rows.</em>
             </div>
             <input
               id="wsi-manifest"

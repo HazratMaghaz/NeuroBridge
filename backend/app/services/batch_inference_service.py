@@ -2,6 +2,8 @@ import os
 import shutil
 import uuid
 from pathlib import Path
+from backend.app.services.inference_service import handle_wsi_path_inference
+from cns_multimodalai.inference.predict_from_patches import predict_from_patch_folder
 import pandas as pd
 import numpy as np
 from fastapi import UploadFile
@@ -19,12 +21,13 @@ from backend.app.services.inference_service import (
 
 from cns_multimodalai.inference.predict_from_rna import run_rna_inference
 from cns_multimodalai.inference.rna_reference_morphology_retrieval import run_reference_morphology_retrieval
-from cns_multimodalai.inference.predict_from_patches import run_patch_inference, extract_and_classify_ctranspath
-from cns_multimodalai.inference.predict_wsi_local import run_local_wsi_inference
+# Removed invalid top-level import: predict_from_patches does not expose run_patch_inference/extract_and_classify_ctranspath.
+# Patch batch should reuse existing service logic or import real functions lazily inside the patch batch handler.
+# Removed invalid invented import: this function/module does not exist in the project.
 
 
 async def handle_batch_rna_upload(
-    file: UploadFile,
+    files: list[UploadFile],
     batch_ref_morph_n: int = 3,
     run_reference_morphology: bool = True
 ) -> dict:
@@ -43,35 +46,43 @@ async def handle_batch_rna_upload(
     }
     
     try:
-        # Save upload
+        # Save and read all uploads
         input_dir = run_dir / "input"
         input_dir.mkdir(parents=True, exist_ok=True)
-        csv_path = input_dir / file.filename
-        await _save_upload(file, csv_path, RNA_MAX_BYTES)
         
-        # Read CSV and format IDs
-        df = pd.read_csv(csv_path)
-        
-        id_col = None
-        for col in ["patient_id", "sample_id", "case_id"]:
-            if col in df.columns:
-                id_col = col
-                break
-        
-        if not id_col:
-            df["sample_id"] = [f"sample_{i:04d}" for i in range(1, len(df) + 1)]
-            id_col = "sample_id"
+        all_dfs = []
+        for file in files:
+            csv_path = input_dir / file.filename
+            await _save_upload(file, csv_path, RNA_MAX_BYTES)
             
-        if id_col != "patient_id":
-            df["patient_id"] = df[id_col]
+            df = pd.read_csv(csv_path)
+            df["source_file"] = file.filename
             
-        df.to_csv(csv_path, index=False)
-        response["n_samples_total"] = len(df)
+            id_col = None
+            for col in ["patient_id", "sample_id", "case_id"]:
+                if col in df.columns:
+                    id_col = col
+                    break
+            
+            if not id_col:
+                stem = Path(file.filename).stem
+                df["sample_id"] = [f"{stem}_row{i:04d}" for i in range(1, len(df) + 1)]
+                id_col = "sample_id"
+                
+            if id_col != "patient_id":
+                df["patient_id"] = df[id_col]
+                
+            all_dfs.append(df)
+            
+        combined_df = pd.concat(all_dfs, ignore_index=True)
+        combined_csv_path = input_dir / "combined_batch.csv"
+        combined_df.to_csv(combined_csv_path, index=False)
+        response["n_samples_total"] = len(combined_df)
         
         # Run inference
         inference_out_dir = run_dir / "inference"
         result = run_rna_inference(
-            expression_csv=str(csv_path),
+            expression_csv=str(combined_csv_path),
             output_dir=inference_out_dir,
             make_morphology_canvas=False
         )
@@ -132,7 +143,7 @@ async def handle_batch_rna_upload(
                 
             response["result_files"]["batch_summary_url"] = _result_file_url(pred_csv, run_dir)
             response["result_files"]["batch_report_url"] = _result_file_url(inference_out_dir / "rna_inference_report.md", run_dir)
-            response["result_files"]["batch_manifest_url"] = _result_file_url(csv_path, run_dir)
+            response["result_files"]["batch_manifest_url"] = _result_file_url(combined_csv_path, run_dir)
             
         if errors:
             errors_df = pd.DataFrame(errors)
@@ -150,7 +161,7 @@ async def handle_batch_rna_upload(
     return make_json_safe(response)
 
 
-async def handle_batch_patch_upload(file: UploadFile) -> dict:
+async def handle_batch_patch_upload(files: list[UploadFile]) -> dict:
     run_dir = _make_run_dir("patch_batch")
     response = {
         "status": "uploaded",
@@ -166,21 +177,37 @@ async def handle_batch_patch_upload(file: UploadFile) -> dict:
     try:
         input_dir = run_dir / "input"
         input_dir.mkdir(parents=True, exist_ok=True)
-        zip_path = input_dir / file.filename
-        await _save_upload(file, zip_path, PATCH_ZIP_MAX_BYTES)
         
-        extract_dir = run_dir / "extracted_patches"
-        _safe_extract_zip(zip_path, extract_dir)
+        all_subdirs_to_process = []
         
-        # Look for subdirectories
-        subdirs = [d for d in extract_dir.iterdir() if d.is_dir()]
+        for file in files:
+            zip_path = input_dir / file.filename
+            await _save_upload(file, zip_path, PATCH_ZIP_MAX_BYTES)
+            
+            stem = Path(file.filename).stem
+            extract_dir = run_dir / f"extracted_{stem}"
+            _safe_extract_zip(zip_path, extract_dir)
+            
+            # Look for subdirectories
+            subdirs = [d for d in extract_dir.iterdir() if d.is_dir()]
+            loose_images = [f for f in extract_dir.iterdir() if f.is_file() and f.suffix.lower() in ['.jpg', '.jpeg', '.png', '.tif', '.tiff']]
+            
+            if subdirs:
+                all_subdirs_to_process.extend(subdirs)
+            elif loose_images:
+                # Treat the whole zip as one sample using stem as sample_id
+                sample_dir = extract_dir / stem
+                sample_dir.mkdir(exist_ok=True)
+                for img in loose_images:
+                    shutil.move(str(img), str(sample_dir / img.name))
+                all_subdirs_to_process.append(sample_dir)
         
-        if not subdirs:
+        if not all_subdirs_to_process:
             response["status"] = "failed"
-            response["error"] = "No subfolders found in ZIP. For batch patch mode, the ZIP must contain one folder per sample."
+            response["error"] = "No valid subfolders or images found in the uploaded ZIP(s)."
             return make_json_safe(response)
             
-        response["n_samples_total"] = len(subdirs)
+        response["n_samples_total"] = len(all_subdirs_to_process)
         
         per_sample_dir = run_dir / "per_sample"
         per_sample_dir.mkdir(exist_ok=True)
@@ -190,13 +217,15 @@ async def handle_batch_patch_upload(file: UploadFile) -> dict:
         all_pathways = []
         errors = []
         
-        for subdir in subdirs:
+        for subdir in all_subdirs_to_process:
             pid = subdir.name
             out_dir = per_sample_dir / pid
             out_dir.mkdir(exist_ok=True)
             
             try:
-                emb_dict, pred_path = extract_and_classify_ctranspath(subdir, output_dir=out_dir)
+                pred_result = predict_from_patch_folder(subdir, output_dir=out_dir)
+                emb_dict = pred_result if isinstance(pred_result, dict) else {"result": str(pred_result)}
+                pred_path = Path(out_dir) / "patch_folder_prediction.csv"
                 
                 if pred_path and Path(pred_path).exists():
                     p_df = pd.read_csv(pred_path)
@@ -304,7 +333,7 @@ async def handle_batch_wsi_upload(file: UploadFile) -> dict:
             out_dir.mkdir(exist_ok=True)
             
             try:
-                res = run_local_wsi_inference(wsi_path, output_dir=out_dir, max_patches=max_p)
+                res = handle_wsi_path_inference(wsi_path, output_dir=out_dir, max_patches=max_p)
                 pred_path = res.get("predictions_csv")
                 
                 if pred_path and Path(pred_path).exists():
