@@ -18,19 +18,25 @@ function isNetworkError(msg: string): boolean {
 }
 
 interface Props {
-  onResult?: (data: PatchApiResponse) => void;
+  onResult?: (data: any) => void;
   onRunStart?: (filename: string) => void;
 }
 
 export default function WsiUpload({ onResult, onRunStart }: Props) {
   const [wsiPath, setWsiPath] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [maxPatches, setMaxPatches] = useState(300);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isBatchMode, setIsBatchMode] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!wsiPath.trim()) {
+    if (isBatchMode && !file) {
+      setError("Please select a CSV manifest.");
+      return;
+    }
+    if (!isBatchMode && !wsiPath.trim()) {
       setError("Please enter a local WSI path.");
       return;
     }
@@ -39,23 +45,33 @@ export default function WsiUpload({ onResult, onRunStart }: Props) {
     setError(null);
     
     // Extract just the filename for the UI summary
-    const filename = wsiPath.split("/").pop() ?? wsiPath;
+    const filename = isBatchMode ? file!.name : (wsiPath.split("/").pop() ?? wsiPath);
     onRunStart?.(filename);
 
     try {
-      const res = await fetch(`${API_BASE}/api/infer/wsi-path`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          wsi_path: wsiPath.trim(),
-          max_patches: maxPatches,
-          run_model: true,
-        }),
-      });
+      let res;
+      if (isBatchMode) {
+        const fd = new FormData();
+        fd.append("file", file!);
+        res = await fetch(`${API_BASE}/api/infer/wsi-path/batch`, {
+          method: "POST",
+          body: fd,
+        });
+      } else {
+        res = await fetch(`${API_BASE}/api/infer/wsi-path`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            wsi_path: wsiPath.trim(),
+            max_patches: maxPatches,
+            run_model: true,
+          }),
+        });
+      }
 
-      const data: PatchApiResponse = await res.json();
+      const data = await res.json();
 
       if (!res.ok) {
         const detail = (data as unknown as { detail?: string }).detail;
@@ -78,39 +94,79 @@ export default function WsiUpload({ onResult, onRunStart }: Props) {
         Browser WSI upload is disabled in this MVP.
       </p>
 
+      {/* Mode Selector */}
+      <div style={{ marginBottom: 16, display: "flex", gap: 12 }}>
+        <label className="option-item" style={{ cursor: "pointer" }}>
+          <input type="radio" name="wsiMode" checked={!isBatchMode} onChange={() => setIsBatchMode(false)} disabled={loading} />
+          Single WSI Path
+        </label>
+        <label className="option-item" style={{ cursor: "pointer" }}>
+          <input type="radio" name="wsiMode" checked={isBatchMode} onChange={() => setIsBatchMode(true)} disabled={loading} />
+          Batch Manifest
+        </label>
+      </div>
+
       <form onSubmit={submit}>
-        <div style={{ marginBottom: 16 }}>
-          <label
-            htmlFor="wsi-path"
-            style={{
-              display: "block",
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              color: "var(--text-secondary)",
-              marginBottom: 6,
-            }}
-          >
-            Local WSI Path (absolute)
-          </label>
-          <input
-            id="wsi-path"
-            type="text"
-            value={wsiPath}
-            onChange={(e) => setWsiPath(e.target.value)}
-            disabled={loading}
-            placeholder="/path/to/CNS-MultiModalAI/data/wsi/example.svs"
-            style={{
-              width: "100%",
-              padding: "10px 14px",
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-sm)",
-              color: "var(--text-primary)",
-              fontFamily: "var(--font-mono)",
-              fontSize: "0.85rem",
-            }}
-          />
-        </div>
+        {!isBatchMode ? (
+          <div style={{ marginBottom: 16 }}>
+            <label
+              htmlFor="wsi-path"
+              style={{
+                display: "block",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+                color: "var(--text-secondary)",
+                marginBottom: 6,
+              }}
+            >
+              Local WSI Path (absolute)
+            </label>
+            <input
+              id="wsi-path"
+              type="text"
+              value={wsiPath}
+              onChange={(e) => setWsiPath(e.target.value)}
+              disabled={loading}
+              placeholder="/path/to/CNS-MultiModalAI/data/wsi/example.svs"
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-sm)",
+                color: "var(--text-primary)",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.85rem",
+              }}
+            />
+          </div>
+        ) : (
+          <div style={{ marginBottom: 16 }}>
+            <label
+              htmlFor="wsi-manifest"
+              style={{
+                display: "block",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+                color: "var(--text-secondary)",
+                marginBottom: 6,
+              }}
+            >
+              CSV Manifest Upload
+            </label>
+            <div className="info-box info" style={{ marginBottom: 10 }}>
+              Manifest must contain columns: <code>sample_id, wsi_path, max_patches</code>.
+            </div>
+            <input
+              id="wsi-manifest"
+              type="file"
+              accept=".csv"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              disabled={loading}
+              style={{ width: "100%", padding: "6px 0" }}
+            />
+          </div>
+        )}
 
         <div style={{ marginBottom: 20 }}>
           <label
@@ -185,7 +241,7 @@ export default function WsiUpload({ onResult, onRunStart }: Props) {
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={loading || !wsiPath.trim()}
+            disabled={loading || (isBatchMode ? !file : !wsiPath.trim())}
           >
             {loading ? (
               <>

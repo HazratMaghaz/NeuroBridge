@@ -9,6 +9,7 @@ RNA inference route for CNS-MultiModalAI GUI MVP.
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 
 from backend.app.services.inference_service import handle_rna_upload
+from backend.app.services.batch_inference_service import handle_batch_rna_upload
 
 router = APIRouter(prefix="/api/infer", tags=["Inference – RNA"])
 
@@ -37,6 +38,24 @@ async def infer_rna(
             run_model=run_model,
             make_canvas=make_canvas,
             max_cases=max_cases,
+            run_reference_morphology=run_reference_morphology,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=repr(e)) from e
+
+@router.post("/rna/batch")
+async def infer_rna_batch(
+    file: UploadFile = File(..., description="RNA-seq expression CSV (multi-row)"),
+    batch_ref_morph_n: int = Form(3, description="Run reference morphology retrieval for first N samples"),
+    run_reference_morphology: bool = Form(False, description="Enable reference morphology retrieval"),
+):
+    """
+    Batch processing for RNA-seq CSV containing multiple samples.
+    """
+    try:
+        return await handle_batch_rna_upload(
+            file=file,
+            batch_ref_morph_n=batch_ref_morph_n,
             run_reference_morphology=run_reference_morphology,
         )
     except Exception as e:

@@ -764,7 +764,7 @@ function PatchResultCard({ data }: { data: PatchApiResponse }) {
 // ── Main PatchUpload component ────────────────────────────────────────────
 
 interface Props {
-  onResult?: (data: PatchApiResponse) => void;
+  onResult?: (data: any) => void;
   onRunStart?: (filename: string) => void;
 }
 
@@ -773,6 +773,7 @@ export default function PatchUpload({ onResult, onRunStart }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [isBatchMode, setIsBatchMode] = useState(false);
 
   const handleFile = useCallback((f: File | null) => {
     if (!f) return;
@@ -809,12 +810,13 @@ export default function PatchUpload({ onResult, onRunStart }: Props) {
     fd.append("run_model", "true");
 
     try {
-      const res = await fetch(`${API_BASE}/api/infer/patches`, {
+      const endpoint = isBatchMode ? "/api/infer/patches/batch" : "/api/infer/patches";
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         body: fd,
       });
 
-      const data: PatchApiResponse = await res.json();
+      const data = await res.json();
 
       if (!res.ok) {
         const detail = (data as unknown as { detail?: string }).detail;
@@ -838,6 +840,25 @@ export default function PatchUpload({ onResult, onRunStart }: Props) {
           The backend extracts CTransPath embeddings and classifies GBM-like
           vs LGG-like morphology.
         </p>
+
+        {/* Mode Selector */}
+        <div style={{ marginBottom: 16, display: "flex", gap: 12 }}>
+          <label className="option-item" style={{ cursor: "pointer" }}>
+            <input type="radio" name="patchMode" checked={!isBatchMode} onChange={() => setIsBatchMode(false)} disabled={loading} />
+            Single ZIP
+          </label>
+          <label className="option-item" style={{ cursor: "pointer" }}>
+            <input type="radio" name="patchMode" checked={isBatchMode} onChange={() => setIsBatchMode(true)} disabled={loading} />
+            Batch ZIP
+          </label>
+        </div>
+
+        {isBatchMode && (
+          <div className="info-box info" style={{ marginBottom: 16 }}>
+            For batch mode, the ZIP must contain <strong>one folder per sample</strong>.<br/>
+            Example: <code>sample_A/*.png</code>, <code>sample_B/*.png</code>.
+          </div>
+        )}
 
         <form onSubmit={submit}>
           {/* Drop zone */}

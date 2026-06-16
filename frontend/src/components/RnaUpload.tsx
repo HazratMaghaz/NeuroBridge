@@ -72,7 +72,7 @@ export interface CanvasFile {
 }
 
 interface Props {
-  onResult: (data: RnaApiResponse) => void;
+  onResult: (data: any) => void;
   onRunStart?: (filename: string) => void;
 }
 
@@ -92,9 +92,11 @@ function isNetworkError(msg: string): boolean {
 export default function RnaUpload({ onResult, onRunStart }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [runModel, setRunModel] = useState(true);
-  const [makeCanvas, setMakeCanvas] = useState(true);
+  const [makeCanvas, setMakeCanvas] = useState(false);
   const [runReferenceMorphology, setRunReferenceMorphology] = useState(true);
   const [maxCases, setMaxCases] = useState<number>(1);
+  const [isBatchMode, setIsBatchMode] = useState(false);
+  const [batchRefMorphN, setBatchRefMorphN] = useState(3);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -130,17 +132,23 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
     const fd = new FormData();
     fd.append("file", file);
     fd.append("run_model", String(runModel));
-    fd.append("make_canvas", String(makeCanvas));
     fd.append("run_reference_morphology", String(runReferenceMorphology));
-    fd.append("max_cases", String(maxCases));
+    
+    if (isBatchMode) {
+      fd.append("batch_ref_morph_n", String(batchRefMorphN));
+    } else {
+      fd.append("make_canvas", String(makeCanvas));
+      if (maxCases > 0) fd.append("max_cases", String(maxCases));
+    }
 
     try {
-      const res = await fetch(`${API_BASE}/api/infer/rna`, {
+      const endpoint = isBatchMode ? "/api/infer/rna/batch" : "/api/infer/rna";
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         body: fd,
       });
 
-      const data: RnaApiResponse = await res.json();
+      const data = await res.json();
 
       if (!res.ok) {
         const detail = (data as unknown as { detail?: string }).detail;
@@ -160,10 +168,20 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
     <div className="card">
       <div className="card-title">🧬 RNA-seq Inference</div>
       <p className="card-desc">
-        Upload a patient-level expression CSV (rows = patients, columns = gene IDs /
-        patient_id). The system accepts multi-row CSVs for batch processing.
-        The backend runs the frozen Phase&nbsp;14 GBM/LGG-like model.
+        Upload a patient-level expression CSV. The backend runs the frozen Phase 14 GBM/LGG-like model.
       </p>
+
+      {/* Mode Selector */}
+      <div style={{ marginBottom: 16, display: "flex", gap: 12 }}>
+        <label className="option-item" style={{ cursor: "pointer" }}>
+          <input type="radio" name="rnaMode" checked={!isBatchMode} onChange={() => setIsBatchMode(false)} disabled={loading} />
+          Single Sample
+        </label>
+        <label className="option-item" style={{ cursor: "pointer" }}>
+          <input type="radio" name="rnaMode" checked={isBatchMode} onChange={() => setIsBatchMode(true)} disabled={loading} />
+          Batch Mode
+        </label>
+      </div>
 
       <form onSubmit={submit}>
         {/* Drop zone */}
@@ -211,46 +229,56 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
             />
             Run reference morphology retrieval
           </label>
-          <label className="option-item option-item-disabled" htmlFor="cb-batch-mode" style={{ opacity: 0.6 }}>
-            <input
-              id="cb-batch-mode"
-              type="checkbox"
-              checked={true}
-              disabled={true}
-            />
-            Batch mode: process multiple rows/samples from one RNA CSV
-          </label>
+          
+          {isBatchMode && runReferenceMorphology && (
+            <label className="option-item" htmlFor="num-batch-ref-n" style={{ marginLeft: 16 }}>
+              for first&nbsp;
+              <input 
+                id="num-batch-ref-n"
+                type="number"
+                min={1}
+                max={100}
+                value={batchRefMorphN}
+                onChange={(e) => setBatchRefMorphN(parseInt(e.target.value))}
+                disabled={loading}
+                style={{ width: 50, padding: "2px 4px" }}
+              />
+              &nbsp;samples
+            </label>
+          )}
         </div>
         
-        <details style={{ marginBottom: 14, marginTop: -4 }}>
-          <summary style={{ cursor: "pointer", fontSize: "0.75rem", color: "var(--text-muted)" }}>Legacy Options</summary>
-          <div className="option-row" style={{ marginTop: 8 }}>
-            <label className="option-item" htmlFor="cb-make-canvas">
-              <input
-                id="cb-make-canvas"
-                type="checkbox"
-                checked={makeCanvas}
-                onChange={(e) => setMakeCanvas(e.target.checked)}
+        {!isBatchMode && (
+          <details style={{ marginBottom: 14, marginTop: -4 }}>
+            <summary style={{ cursor: "pointer", fontSize: "0.75rem", color: "var(--text-muted)" }}>Legacy Options</summary>
+            <div className="option-row" style={{ marginTop: 8 }}>
+              <label className="option-item" htmlFor="cb-make-canvas">
+                <input
+                  id="cb-make-canvas"
+                  type="checkbox"
+                  checked={makeCanvas}
+                  onChange={(e) => setMakeCanvas(e.target.checked)}
+                  disabled={loading}
+                />
+                Generate legacy morphology canvas
+              </label>
+              <label className="option-item" htmlFor="sel-max-cases">
+              Max cases&nbsp;
+              <select
+                id="sel-max-cases"
+                value={maxCases}
+                onChange={(e) => setMaxCases(Number(e.target.value))}
                 disabled={loading}
-              />
-              Generate legacy morphology canvas
+              >
+                <option value={1}>1</option>
+                <option value={3}>3</option>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+              </select>
             </label>
-            <label className="option-item" htmlFor="sel-max-cases">
-            Max cases&nbsp;
-            <select
-              id="sel-max-cases"
-              value={maxCases}
-              onChange={(e) => setMaxCases(Number(e.target.value))}
-              disabled={loading}
-            >
-              <option value={1}>1</option>
-              <option value={3}>3</option>
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-            </select>
-          </label>
-          </div>
-        </details>
+            </div>
+          </details>
+        )}
 
         {/* Submit */}
         <div className="btn-row">

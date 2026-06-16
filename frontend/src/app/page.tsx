@@ -8,6 +8,7 @@ import CanvasViewer from "@/components/CanvasViewer";
 import PatchUpload, { type PatchApiResponse } from "@/components/PatchUpload";
 import PatchResultReport from "@/components/PatchResultReport";
 import WsiUpload from "@/components/WsiUpload";
+import BatchResultCard, { type BatchApiResponse } from "@/components/BatchResultCard";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -141,6 +142,9 @@ export default function HomePage() {
   const [wsiResult, setWsiResult] = useState<PatchApiResponse | null>(null);
   const [wsiFilename, setWsiFilename] = useState<string>("");
 
+  // Batch specific states (we reuse the string for tracking, but need a generic batch result)
+  const [batchResult, setBatchResult] = useState<BatchApiResponse | null>(null);
+
   // Health
   const [health, setHealth] = useState<HealthInfo>({
     state: "checking",
@@ -178,10 +182,15 @@ export default function HomePage() {
     setRnaState("running");
     setRnaFilename(filename);
     setRnaResult(null);
+    setBatchResult(null);
   }
 
-  function handleRnaResult(data: RnaApiResponse) {
-    setRnaResult(data);
+  function handleRnaResult(data: RnaApiResponse | BatchApiResponse) {
+    if ("batch_mode" in data && data.batch_mode) {
+      setBatchResult(data as BatchApiResponse);
+    } else {
+      setRnaResult(data as RnaApiResponse);
+    }
     setRnaState("done");
     setHealth({
       state: "connected",
@@ -193,6 +202,7 @@ export default function HomePage() {
   function resetRna() {
     setRnaState("idle");
     setRnaResult(null);
+    setBatchResult(null);
     setRnaFilename("");
   }
 
@@ -201,13 +211,19 @@ export default function HomePage() {
     setPatchState("running");
     setPatchFilename(filename);
     setPatchResult(null);
+    setBatchResult(null);
     setPatchImageCount(null);
   }
 
-  function handlePatchResult(data: PatchApiResponse) {
-    setPatchResult(data);
+  function handlePatchResult(data: PatchApiResponse | BatchApiResponse) {
+    if ("batch_mode" in data && data.batch_mode) {
+      setBatchResult(data as BatchApiResponse);
+    } else {
+      const pData = data as PatchApiResponse;
+      setPatchResult(pData);
+      setPatchImageCount(pData.n_images_found ?? null);
+    }
     setPatchState("done");
-    setPatchImageCount(data.n_images_found ?? null);
     setHealth({
       state: "connected",
       label: "Backend connected",
@@ -218,6 +234,7 @@ export default function HomePage() {
   function resetPatch() {
     setPatchState("idle");
     setPatchResult(null);
+    setBatchResult(null);
     setPatchFilename("");
     setPatchImageCount(null);
   }
@@ -227,10 +244,15 @@ export default function HomePage() {
     setWsiState("running");
     setWsiFilename(filename);
     setWsiResult(null);
+    setBatchResult(null);
   }
 
-  function handleWsiResult(data: PatchApiResponse) {
-    setWsiResult(data);
+  function handleWsiResult(data: PatchApiResponse | BatchApiResponse) {
+    if ("batch_mode" in data && data.batch_mode) {
+      setBatchResult(data as BatchApiResponse);
+    } else {
+      setWsiResult(data as PatchApiResponse);
+    }
     setWsiState("done");
     setHealth({
       state: "connected",
@@ -242,6 +264,7 @@ export default function HomePage() {
   function resetWsi() {
     setWsiState("idle");
     setWsiResult(null);
+    setBatchResult(null);
     setWsiFilename("");
   }
 
@@ -257,10 +280,10 @@ export default function HomePage() {
           <div className="topbar-dot" aria-hidden="true" />
           <div>
             <div className="topbar-title">CNS-MultiModalAI</div>
-            <div className="topbar-subtitle">MultimodalAI GUI · prototype</div>
+            <div className="topbar-subtitle">Research GUI System</div>
           </div>
         </div>
-        <span className="topbar-badge">MVP v0.7.3</span>
+        <span className="topbar-badge">GUI v0.8.0</span>
       </header>
 
       {/* ── Backend status ───────────────────────────────────────────────── */}
@@ -331,14 +354,14 @@ export default function HomePage() {
           )}
 
           {/* Compact input summary after completion */}
-          {rnaState === "done" && rnaResult && (
+          {rnaState === "done" && (rnaResult || batchResult) && (
             <InputSummary
               icon="📄"
               filename={rnaFilename}
-              meta={`RNA-seq CSV · ${rnaResult.prediction_preview?.length ?? 0} case(s) · Phase 14 model`}
+              meta={batchResult ? `Batch RNA-seq CSV · ${batchResult.n_samples_total} cases` : `RNA-seq CSV · ${rnaResult?.prediction_preview?.length ?? 0} case(s) · Phase 14 model`}
               statusPill={
-                <span className={`pill ${rnaResult.status === "completed" ? "pill-success" : "pill-error"}`}>
-                  {rnaResult.status === "completed" ? "✓ Completed" : "✗ Failed"}
+                <span className={`pill ${(batchResult?.status || rnaResult?.status) === "completed" ? "pill-success" : (batchResult?.status === "completed_with_errors" ? "pill-warning" : "pill-error")}`}>
+                  {(batchResult?.status || rnaResult?.status) === "completed" ? "✓ Completed" : (batchResult?.status === "completed_with_errors" ? "⚠ Partial" : "✗ Failed")}
                 </span>
               }
               onRunAnother={resetRna}
@@ -346,6 +369,7 @@ export default function HomePage() {
           )}
 
           {/* Results */}
+          {rnaState === "done" && batchResult && <BatchResultCard data={batchResult} />}
           {rnaState === "done" && rnaResult && (
             <>
               <ResultCard data={rnaResult} />
@@ -410,21 +434,21 @@ export default function HomePage() {
           )}
 
           {/* Compact input summary after completion */}
-          {patchState === "done" && patchResult && (
+          {patchState === "done" && (patchResult || batchResult) && (
             <InputSummary
               icon="🗜️"
               filename={patchFilename}
-              meta={`Patch ZIP · ${patchImageCount ?? "?"} images found · Phase 14 model`}
+              meta={batchResult ? `Batch Patch ZIP · ${batchResult.n_samples_total} samples` : `Patch ZIP · ${patchImageCount ?? "?"} images found · Phase 14 model`}
               statusPill={
-                <span className={`pill ${patchResult.status === "completed" ? "pill-success" : "pill-error"}`}>
-                  {patchResult.status === "completed" ? "✓ Completed" : "✗ Failed"}
+                <span className={`pill ${(batchResult?.status || patchResult?.status) === "completed" ? "pill-success" : (batchResult?.status === "completed_with_errors" ? "pill-warning" : "pill-error")}`}>
+                  {(batchResult?.status || patchResult?.status) === "completed" ? "✓ Completed" : (batchResult?.status === "completed_with_errors" ? "⚠ Partial" : "✗ Failed")}
                 </span>
               }
               onRunAnother={resetPatch}
             />
           )}
 
-          {/* Patch result report */}
+          {patchState === "done" && batchResult && <BatchResultCard data={batchResult} />}
           {patchState === "done" && patchResult && (
             <PatchResultReport data={patchResult} />
           )}
@@ -462,21 +486,21 @@ export default function HomePage() {
           )}
 
           {/* Compact input summary after completion */}
-          {wsiState === "done" && wsiResult && (
+          {wsiState === "done" && (wsiResult || batchResult) && (
             <InputSummary
               icon="🖼️"
               filename={wsiFilename}
-              meta={`WSI Path · ${wsiResult.wsi_extraction?.n_patches_saved ?? wsiResult.n_images_found ?? "?"} patches extracted`}
+              meta={batchResult ? `Batch WSI Manifest · ${batchResult.n_samples_total} slides` : `WSI Path · ${wsiResult?.wsi_extraction?.n_patches_saved ?? wsiResult?.n_images_found ?? "?"} patches extracted`}
               statusPill={
-                <span className={`pill ${wsiResult.status === "completed" ? "pill-success" : "pill-error"}`}>
-                  {wsiResult.status === "completed" ? "✓ Completed" : "✗ Failed"}
+                <span className={`pill ${(batchResult?.status || wsiResult?.status) === "completed" ? "pill-success" : (batchResult?.status === "completed_with_errors" ? "pill-warning" : "pill-error")}`}>
+                  {(batchResult?.status || wsiResult?.status) === "completed" ? "✓ Completed" : (batchResult?.status === "completed_with_errors" ? "⚠ Partial" : "✗ Failed")}
                 </span>
               }
               onRunAnother={resetWsi}
             />
           )}
 
-          {/* Patch result report — reuses the exact same component as the patch tab */}
+          {wsiState === "done" && batchResult && <BatchResultCard data={batchResult} />}
           {wsiState === "done" && wsiResult && (
             <PatchResultReport data={wsiResult} />
           )}

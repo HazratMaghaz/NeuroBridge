@@ -6,6 +6,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.app.services.inference_service import handle_wsi_path_inference
+from backend.app.services.batch_inference_service import handle_batch_wsi_upload
+from fastapi import UploadFile, File
 
 router = APIRouter(prefix="/api/infer", tags=["Inference – WSI"])
 
@@ -28,5 +30,17 @@ async def infer_wsi_path(req: WsiPathRequest):
             max_patches=req.max_patches,
             run_model=req.run_model
         )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=repr(e)) from e
+
+@router.post("/wsi-path/batch")
+async def infer_wsi_batch(
+    file: UploadFile = File(..., description="CSV manifest containing sample_id, wsi_path, max_patches"),
+):
+    """
+    Batch processing for WSI files using a CSV manifest.
+    """
+    try:
+        return await handle_batch_wsi_upload(file=file)
     except Exception as e:
         raise HTTPException(status_code=400, detail=repr(e)) from e
