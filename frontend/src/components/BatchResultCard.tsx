@@ -1,7 +1,15 @@
 "use client";
 
 import React from "react";
-import { absUrl } from "@/components/WsiUpload"; // or wherever absUrl is
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
+
+function absUrl(path?: string | null): string {
+  if (!path) return "#";
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  return `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 
 export interface BatchApiResponse {
   status: "uploaded" | "completed" | "completed_with_errors" | "failed";

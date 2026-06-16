@@ -325,7 +325,7 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
             id="btn-run-rna"
             type="submit"
             className="btn btn-primary"
-            disabled={loading || !file}
+            disabled={loading || files.length === 0}
           >
             {loading ? (
               <>
@@ -336,11 +336,11 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
               <>▶ Run Analysis</>
             )}
           </button>
-          {file && !loading && (
+          {files.length > 0 && !loading && (
             <button
               type="button"
               className="btn btn-ghost"
-              onClick={() => { setFile(null); setError(null); }}
+              onClick={() => { setFiles([]); setError(null); }}
             >
               ✕ Clear
             </button>

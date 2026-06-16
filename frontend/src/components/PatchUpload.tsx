@@ -946,11 +946,11 @@ export default function PatchUpload({ onResult, onRunStart }: Props) {
                 <>▶ Run Patch Analysis</>
               )}
             </button>
-            {file && !loading && (
+            {files.length > 0 && !loading && (
               <button
                 type="button"
                 className="btn btn-ghost"
-                onClick={() => { setFile(null); setError(null); }}
+                onClick={() => { setFiles([]); setError(null); }}
               >
                 ✕ Clear
               </button>
