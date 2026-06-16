@@ -5,8 +5,7 @@ import type {
   PatchResultFiles,
   PatchClinicalRelevance,
   PatchMolecularOutput,
-  PatchMolecularOutput,
-  PatchTopFeature,
+    PatchTopFeature,
 } from "./PatchUpload";
 import DeepZoomViewer from "./DeepZoomViewer";
 

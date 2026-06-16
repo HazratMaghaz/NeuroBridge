@@ -196,6 +196,96 @@ async def _save_upload(file: UploadFile, dest: Path, max_bytes: int) -> int:
 
 
 
+
+def _deepzoom_url(file_path: Path, run_dir: Path) -> str | None:
+    """
+    Return OpenSeadragon-safe URL for a DZI file.
+    This uses /deepzoom/ route instead of query-string /file route.
+    """
+    try:
+        file_path = Path(file_path).resolve()
+        run_dir = Path(run_dir).resolve()
+        rel = file_path.relative_to(run_dir / "deepzoom")
+        return f"/api/results/{run_dir.name}/deepzoom/{rel.as_posix()}"
+    except Exception:
+        return None
+
+
+def _maybe_attach_deepzoom_outputs(run_dir, result_files: dict | None) -> dict:
+    """
+    Generate Deep Zoom tiles for known visual outputs and attach *_dzi_url keys.
+    Failure-safe: never breaks inference.
+    """
+    result_files = result_files or {}
+
+    try:
+        from pathlib import Path
+        from PIL import Image
+        from cns_multimodalai.visualization.deepzoom_static import generate_deepzoom_from_image
+    except Exception:
+        return result_files
+
+    run_dir = Path(run_dir)
+
+    visual_map = [
+        (
+            "reference_morphology_top_panel_dzi_url",
+            run_dir / "inference/reference_morphology/reference_morphology_top_patch_panel.jpg",
+        ),
+        (
+            "reference_morphology_source_panel_dzi_url",
+            run_dir / "inference/reference_morphology/reference_morphology_source_grouped_panel.jpg",
+        ),
+        (
+            "reference_morphology_coordinate_layout_dzi_url",
+            run_dir / "inference/reference_morphology/reference_morphology_coordinate_layout.jpg",
+        ),
+        (
+            "wsi_patch_overlay_dzi_url",
+            run_dir / "visualizations/wsi_patch_overlay.jpg",
+        ),
+        (
+            "wsi_coordinate_mosaic_dzi_url",
+            run_dir / "visualizations/wsi_coordinate_patch_mosaic.jpg",
+        ),
+        (
+            "wsi_spatial_contact_sheet_dzi_url",
+            run_dir / "visualizations/wsi_spatial_contact_sheet.jpg",
+        ),
+    ]
+
+    for dzi_key, img_path in visual_map:
+        try:
+            if not img_path.exists():
+                continue
+
+            with Image.open(img_path) as im:
+                w, h = im.size
+
+            # Lower threshold for our generated panels.
+            # These are not huge SVS files; 500 px is enough for viewer testing.
+            if max(w, h) < 500:
+                continue
+
+            info = generate_deepzoom_from_image(
+                image_path=img_path,
+                output_dir=run_dir / "deepzoom",
+                tile_size=256,
+                overlap=1,
+                fmt="jpg",
+            )
+
+            dzi_path = Path(info["dzi_path"])
+            dzi_url = _deepzoom_url(dzi_path, run_dir)
+            if dzi_url:
+                result_files[dzi_key] = dzi_url
+
+        except Exception as e:
+            result_files[f"{dzi_key}_error"] = repr(e)
+
+    return result_files
+
+
 def _result_file_url(file_path: str | Path, run_dir: Path) -> str | None:
     """
     Convert an absolute result file path into a frontend-accessible API URL.
@@ -700,6 +790,41 @@ async def handle_rna_upload(
             response["status"] = "failed"
             response["error"] = repr(e)
 
+    try:
+
+
+        if isinstance(response, dict) and "result_files" in response:
+
+
+            response["result_files"] = _maybe_attach_deepzoom_outputs(run_dir, response.get("result_files") or {})
+
+
+    except Exception as e:
+
+
+        response.setdefault("warnings", []).append(f"DeepZoom skipped: {e!r}")
+
+
+    try:
+
+
+
+        if isinstance(response, dict) and "result_files" in response:
+
+
+
+            response["result_files"] = _maybe_attach_deepzoom_outputs(run_dir, response.get("result_files") or {})
+
+
+
+    except Exception as e:
+
+
+
+        response.setdefault("warnings", []).append(f"DeepZoom skipped: {e!r}")
+
+
+
     return make_json_safe(response)
 
 
@@ -747,6 +872,31 @@ async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict
     if n_images == 0:
         response["status"] = "failed"
         response["error"] = "No patch images found in uploaded ZIP. Expected PNG/JPG/TIF/WEBP files."
+        try:
+
+            if isinstance(response, dict) and "result_files" in response:
+
+                response["result_files"] = _maybe_attach_deepzoom_outputs(run_dir, response.get("result_files") or {})
+
+        except Exception as e:
+
+            response.setdefault("warnings", []).append(f"DeepZoom skipped: {e!r}")
+
+        try:
+
+
+            if isinstance(response, dict) and "result_files" in response:
+
+
+                response["result_files"] = _maybe_attach_deepzoom_outputs(run_dir, response.get("result_files") or {})
+
+
+        except Exception as e:
+
+
+            response.setdefault("warnings", []).append(f"DeepZoom skipped: {e!r}")
+
+
         return make_json_safe(response)
 
     if run_model:
@@ -835,6 +985,41 @@ async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict
     else:
         response["note"] = "Patch ZIP uploaded and extracted. Set run_model=true to run patch inference."
 
+    try:
+
+
+        if isinstance(response, dict) and "result_files" in response:
+
+
+            response["result_files"] = _maybe_attach_deepzoom_outputs(run_dir, response.get("result_files") or {})
+
+
+    except Exception as e:
+
+
+        response.setdefault("warnings", []).append(f"DeepZoom skipped: {e!r}")
+
+
+    try:
+
+
+
+        if isinstance(response, dict) and "result_files" in response:
+
+
+
+            response["result_files"] = _maybe_attach_deepzoom_outputs(run_dir, response.get("result_files") or {})
+
+
+
+    except Exception as e:
+
+
+
+        response.setdefault("warnings", []).append(f"DeepZoom skipped: {e!r}")
+
+
+
     return make_json_safe(response)
 
 
@@ -884,6 +1069,31 @@ def handle_wsi_path_inference(wsi_path: str, max_patches: int = 100, run_model: 
         if n_images == 0:
             response["status"] = "failed"
             response["error"] = "WSI patch extraction yielded 0 patches. Check tissue masking."
+            try:
+
+                if isinstance(response, dict) and "result_files" in response:
+
+                    response["result_files"] = _maybe_attach_deepzoom_outputs(run_dir, response.get("result_files") or {})
+
+            except Exception as e:
+
+                response.setdefault("warnings", []).append(f"DeepZoom skipped: {e!r}")
+
+            try:
+
+
+                if isinstance(response, dict) and "result_files" in response:
+
+
+                    response["result_files"] = _maybe_attach_deepzoom_outputs(run_dir, response.get("result_files") or {})
+
+
+            except Exception as e:
+
+
+                response.setdefault("warnings", []).append(f"DeepZoom skipped: {e!r}")
+
+
             return make_json_safe(response)
 
         if run_model:
@@ -1001,6 +1211,41 @@ def handle_wsi_path_inference(wsi_path: str, max_patches: int = 100, run_model: 
     except Exception as e:
         response["status"] = "failed"
         response["error"] = repr(e)
+
+    try:
+
+
+        if isinstance(response, dict) and "result_files" in response:
+
+
+            response["result_files"] = _maybe_attach_deepzoom_outputs(run_dir, response.get("result_files") or {})
+
+
+    except Exception as e:
+
+
+        response.setdefault("warnings", []).append(f"DeepZoom skipped: {e!r}")
+
+
+    try:
+
+
+
+        if isinstance(response, dict) and "result_files" in response:
+
+
+
+            response["result_files"] = _maybe_attach_deepzoom_outputs(run_dir, response.get("result_files") or {})
+
+
+
+    except Exception as e:
+
+
+
+        response.setdefault("warnings", []).append(f"DeepZoom skipped: {e!r}")
+
+
 
     return make_json_safe(response)
 
