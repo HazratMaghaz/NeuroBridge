@@ -33,8 +33,11 @@ export interface PatchResultFiles {
   wsi_thumbnail_url?: string | null;
   wsi_tissue_mask_url?: string | null;
   wsi_patch_overlay_url?: string | null;
+  wsi_patch_overlay_dzi_url?: string | null;
   wsi_coordinate_mosaic_url?: string | null;
+  wsi_coordinate_mosaic_dzi_url?: string | null;
   wsi_spatial_contact_sheet_url?: string | null;
+  wsi_spatial_contact_sheet_dzi_url?: string | null;
   wsi_visualization_summary_url?: string | null;
 }
 

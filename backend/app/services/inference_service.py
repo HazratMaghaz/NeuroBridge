@@ -25,6 +25,34 @@ from fastapi import UploadFile
 
 from cns_multimodalai.inference.predict_from_rna import run_rna_inference
 from cns_multimodalai.inference.predict_from_patches import predict_from_patch_folder
+from cns_multimodalai.visualization.deepzoom_static import generate_deepzoom_from_image
+from PIL import Image
+
+def _safe_generate_dzi(image_path: str | Path | None, run_dir: Path) -> str | None:
+    if not image_path:
+        return None
+        
+    img_path = Path(image_path)
+    if not img_path.exists():
+        return None
+        
+    # Check threshold > 1200px
+    try:
+        with Image.open(img_path) as img:
+            w, h = img.size
+            if max(w, h) <= 1200:
+                return None
+    except Exception:
+        return None
+        
+    try:
+        dz_out = run_dir / "deepzoom"
+        dz_out.mkdir(exist_ok=True)
+        dz_res = generate_deepzoom_from_image(img_path, output_dir=dz_out)
+        return str(dz_res["dzi_path"])
+    except Exception as e:
+        print(f"Deep Zoom generation failed for {img_path}: {e}")
+        return None
 
 def make_json_safe(obj):
     """
@@ -637,10 +665,17 @@ async def handle_rna_upload(
                         "warning": ref_summary.get("warning"),
                     }
                     
+                    top_panel_path = ref_summary.get("top_panel")
+                    source_panel_path = ref_summary.get("source_panel")
+                    coord_layout_path = ref_summary.get("coordinate_layout")
+                    
                     result_files.update({
-                        "reference_morphology_top_panel_url": _result_file_url(ref_summary.get("top_panel"), run_dir) if ref_summary.get("top_panel") else None,
-                        "reference_morphology_source_panel_url": _result_file_url(ref_summary.get("source_panel"), run_dir) if ref_summary.get("source_panel") else None,
-                        "reference_morphology_coordinate_layout_url": _result_file_url(ref_summary.get("coordinate_layout"), run_dir) if ref_summary.get("coordinate_layout") else None,
+                        "reference_morphology_top_panel_url": _result_file_url(top_panel_path, run_dir) if top_panel_path else None,
+                        "reference_morphology_top_panel_dzi_url": _result_file_url(_safe_generate_dzi(top_panel_path, run_dir), run_dir),
+                        "reference_morphology_source_panel_url": _result_file_url(source_panel_path, run_dir) if source_panel_path else None,
+                        "reference_morphology_source_panel_dzi_url": _result_file_url(_safe_generate_dzi(source_panel_path, run_dir), run_dir),
+                        "reference_morphology_coordinate_layout_url": _result_file_url(coord_layout_path, run_dir) if coord_layout_path else None,
+                        "reference_morphology_coordinate_layout_dzi_url": _result_file_url(_safe_generate_dzi(coord_layout_path, run_dir), run_dir),
                         "reference_morphology_retrieval_csv_url": _result_file_url(ref_summary.get("retrieval_csv"), run_dir) if ref_summary.get("retrieval_csv") else None,
                         "reference_morphology_summary_url": _result_file_url(ref_out_dir / "reference_morphology_summary.json", run_dir) if (ref_out_dir / "reference_morphology_summary.json").exists() else None,
                     })
@@ -918,12 +953,19 @@ def handle_wsi_path_inference(wsi_path: str, max_patches: int = 100, run_model: 
             }
 
             vis = extract_res.get("visualizations", {})
+            overlay_path = vis.get("wsi_patch_overlay_path")
+            mosaic_path = vis.get("wsi_coordinate_mosaic_path")
+            contact_path = vis.get("wsi_spatial_contact_sheet_path")
+            
             response["result_files"].update({
                 "wsi_thumbnail_url": _result_file_url(vis.get("wsi_thumbnail_path"), run_dir) if vis.get("wsi_thumbnail_path") else None,
                 "wsi_tissue_mask_url": _result_file_url(vis.get("wsi_tissue_mask_path"), run_dir) if vis.get("wsi_tissue_mask_path") else None,
-                "wsi_patch_overlay_url": _result_file_url(vis.get("wsi_patch_overlay_path"), run_dir) if vis.get("wsi_patch_overlay_path") else None,
-                "wsi_coordinate_mosaic_url": _result_file_url(vis.get("wsi_coordinate_mosaic_path"), run_dir) if vis.get("wsi_coordinate_mosaic_path") else None,
-                "wsi_spatial_contact_sheet_url": _result_file_url(vis.get("wsi_spatial_contact_sheet_path"), run_dir) if vis.get("wsi_spatial_contact_sheet_path") else None,
+                "wsi_patch_overlay_url": _result_file_url(overlay_path, run_dir) if overlay_path else None,
+                "wsi_patch_overlay_dzi_url": _result_file_url(_safe_generate_dzi(overlay_path, run_dir), run_dir) if overlay_path else None,
+                "wsi_coordinate_mosaic_url": _result_file_url(mosaic_path, run_dir) if mosaic_path else None,
+                "wsi_coordinate_mosaic_dzi_url": _result_file_url(_safe_generate_dzi(mosaic_path, run_dir), run_dir) if mosaic_path else None,
+                "wsi_spatial_contact_sheet_url": _result_file_url(contact_path, run_dir) if contact_path else None,
+                "wsi_spatial_contact_sheet_dzi_url": _result_file_url(_safe_generate_dzi(contact_path, run_dir), run_dir) if contact_path else None,
                 "wsi_visualization_summary_url": _result_file_url(vis.get("wsi_visualization_summary_path"), run_dir) if vis.get("wsi_visualization_summary_path") else None,
             })
 
@@ -938,12 +980,19 @@ def handle_wsi_path_inference(wsi_path: str, max_patches: int = 100, run_model: 
                 
         else:
             vis = extract_res.get("visualizations", {})
+            overlay_path = vis.get("wsi_patch_overlay_path")
+            mosaic_path = vis.get("wsi_coordinate_mosaic_path")
+            contact_path = vis.get("wsi_spatial_contact_sheet_path")
+            
             response["result_files"] = {
                 "wsi_thumbnail_url": _result_file_url(vis.get("wsi_thumbnail_path"), run_dir) if vis.get("wsi_thumbnail_path") else None,
                 "wsi_tissue_mask_url": _result_file_url(vis.get("wsi_tissue_mask_path"), run_dir) if vis.get("wsi_tissue_mask_path") else None,
-                "wsi_patch_overlay_url": _result_file_url(vis.get("wsi_patch_overlay_path"), run_dir) if vis.get("wsi_patch_overlay_path") else None,
-                "wsi_coordinate_mosaic_url": _result_file_url(vis.get("wsi_coordinate_mosaic_path"), run_dir) if vis.get("wsi_coordinate_mosaic_path") else None,
-                "wsi_spatial_contact_sheet_url": _result_file_url(vis.get("wsi_spatial_contact_sheet_path"), run_dir) if vis.get("wsi_spatial_contact_sheet_path") else None,
+                "wsi_patch_overlay_url": _result_file_url(overlay_path, run_dir) if overlay_path else None,
+                "wsi_patch_overlay_dzi_url": _result_file_url(_safe_generate_dzi(overlay_path, run_dir), run_dir) if overlay_path else None,
+                "wsi_coordinate_mosaic_url": _result_file_url(mosaic_path, run_dir) if mosaic_path else None,
+                "wsi_coordinate_mosaic_dzi_url": _result_file_url(_safe_generate_dzi(mosaic_path, run_dir), run_dir) if mosaic_path else None,
+                "wsi_spatial_contact_sheet_url": _result_file_url(contact_path, run_dir) if contact_path else None,
+                "wsi_spatial_contact_sheet_dzi_url": _result_file_url(_safe_generate_dzi(contact_path, run_dir), run_dir) if contact_path else None,
                 "wsi_visualization_summary_url": _result_file_url(vis.get("wsi_visualization_summary_path"), run_dir) if vis.get("wsi_visualization_summary_path") else None,
             }
             response["status"] = "extracted"

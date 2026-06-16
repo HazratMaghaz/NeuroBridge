@@ -58,8 +58,11 @@ export interface ResultFiles {
   canvas_index_url?: string | null;
   canvas_files?: CanvasFile[];
   reference_morphology_top_panel_url?: string | null;
+  reference_morphology_top_panel_dzi_url?: string | null;
   reference_morphology_source_panel_url?: string | null;
+  reference_morphology_source_panel_dzi_url?: string | null;
   reference_morphology_coordinate_layout_url?: string | null;
+  reference_morphology_coordinate_layout_dzi_url?: string | null;
   reference_morphology_retrieval_csv_url?: string | null;
   reference_morphology_summary_url?: string | null;
 }

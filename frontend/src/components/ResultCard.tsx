@@ -1,6 +1,7 @@
 "use client";
 
 import type { RnaApiResponse, PredictionRow, CanvasFile, ClinicalRelevance } from "./RnaUpload";
+import DeepZoomViewer from "./DeepZoomViewer";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -221,23 +222,41 @@ function ReferenceMorphologyPanel({
       {/* Visual Cards */}
       <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 10, marginBottom: 16 }}>
         {files.reference_morphology_top_panel_url && (
-          <div style={{ flex: "0 0 300px", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: 8, background: "var(--bg-base)" }}>
-            <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 6 }}>Top retrieved morphology patches</div>
-            <img src={absUrl(files.reference_morphology_top_panel_url) || ""} alt="Top Patches" style={{ width: "100%", borderRadius: 4 }} />
+          <div style={{ flex: "0 0 400px", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: 8, background: "var(--bg-base)" }}>
+            {files.reference_morphology_top_panel_dzi_url ? (
+              <DeepZoomViewer title="Top retrieved morphology patches" dziUrl={absUrl(files.reference_morphology_top_panel_dzi_url)!} height="300px" />
+            ) : (
+              <>
+                <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 6 }}>Top retrieved morphology patches</div>
+                <img src={absUrl(files.reference_morphology_top_panel_url) || ""} alt="Top Patches" style={{ width: "100%", borderRadius: 4 }} />
+              </>
+            )}
             <a href={absUrl(files.reference_morphology_top_panel_url) || "#"} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: "block", textAlign: "center", marginTop: 8, fontSize: "0.75rem" }}>⬇ Download Image</a>
           </div>
         )}
         {files.reference_morphology_source_panel_url && (
-          <div style={{ flex: "0 0 300px", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: 8, background: "var(--bg-base)" }}>
-            <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 6 }}>Source-grouped reference patches</div>
-            <img src={absUrl(files.reference_morphology_source_panel_url) || ""} alt="Source Grouped Patches" style={{ width: "100%", borderRadius: 4 }} />
+          <div style={{ flex: "0 0 400px", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: 8, background: "var(--bg-base)" }}>
+            {files.reference_morphology_source_panel_dzi_url ? (
+              <DeepZoomViewer title="Source-grouped reference patches" dziUrl={absUrl(files.reference_morphology_source_panel_dzi_url)!} height="300px" />
+            ) : (
+              <>
+                <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 6 }}>Source-grouped reference patches</div>
+                <img src={absUrl(files.reference_morphology_source_panel_url) || ""} alt="Source Grouped Patches" style={{ width: "100%", borderRadius: 4 }} />
+              </>
+            )}
             <a href={absUrl(files.reference_morphology_source_panel_url) || "#"} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: "block", textAlign: "center", marginTop: 8, fontSize: "0.75rem" }}>⬇ Download Image</a>
           </div>
         )}
         {files.reference_morphology_coordinate_layout_url && (
-          <div style={{ flex: "0 0 300px", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: 8, background: "var(--bg-base)" }}>
-            <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 6 }}>Reference-coordinate layout</div>
-            <img src={absUrl(files.reference_morphology_coordinate_layout_url) || ""} alt="Coordinate Layout" style={{ width: "100%", borderRadius: 4 }} />
+          <div style={{ flex: "0 0 400px", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: 8, background: "var(--bg-base)" }}>
+            {files.reference_morphology_coordinate_layout_dzi_url ? (
+              <DeepZoomViewer title="Reference-coordinate layout" dziUrl={absUrl(files.reference_morphology_coordinate_layout_dzi_url)!} height="300px" />
+            ) : (
+              <>
+                <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 6 }}>Reference-coordinate layout</div>
+                <img src={absUrl(files.reference_morphology_coordinate_layout_url) || ""} alt="Coordinate Layout" style={{ width: "100%", borderRadius: 4 }} />
+              </>
+            )}
             <a href={absUrl(files.reference_morphology_coordinate_layout_url) || "#"} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: "block", textAlign: "center", marginTop: 8, fontSize: "0.75rem" }}>⬇ Download Image</a>
           </div>
         )}

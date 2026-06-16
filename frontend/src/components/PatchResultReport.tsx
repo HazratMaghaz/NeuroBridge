@@ -5,8 +5,10 @@ import type {
   PatchResultFiles,
   PatchClinicalRelevance,
   PatchMolecularOutput,
+  PatchMolecularOutput,
   PatchTopFeature,
 } from "./PatchUpload";
+import DeepZoomViewer from "./DeepZoomViewer";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -159,27 +161,45 @@ function SpatialWsiVisualization({ files }: { files: PatchResultFiles }) {
           </div>
         )}
         {files.wsi_patch_overlay_url && (
-          <div style={{ flex: "1 1 240px", minWidth: 200 }}>
-            <div className="stat-label" style={{ marginBottom: 6 }}>Patch locations</div>
-            <a href={absUrl(files.wsi_patch_overlay_url) ?? "#"} target="_blank" rel="noopener noreferrer">
-              <img
-                src={absUrl(files.wsi_patch_overlay_url) ?? ""}
-                alt="WSI Patch Overlay"
-                style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }}
-              />
-            </a>
+          <div style={{ flex: "1 1 400px", minWidth: 240 }}>
+            {files.wsi_patch_overlay_dzi_url ? (
+              <>
+                <DeepZoomViewer title="Patch locations" dziUrl={absUrl(files.wsi_patch_overlay_dzi_url)!} height="350px" />
+                <a href={absUrl(files.wsi_patch_overlay_url) ?? "#"} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: "inline-block", marginTop: 8, fontSize: "0.75rem" }}>⬇ Download Image</a>
+              </>
+            ) : (
+              <>
+                <div className="stat-label" style={{ marginBottom: 6 }}>Patch locations</div>
+                <a href={absUrl(files.wsi_patch_overlay_url) ?? "#"} target="_blank" rel="noopener noreferrer">
+                  <img
+                    src={absUrl(files.wsi_patch_overlay_url) ?? ""}
+                    alt="WSI Patch Overlay"
+                    style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }}
+                  />
+                </a>
+              </>
+            )}
           </div>
         )}
         {files.wsi_coordinate_mosaic_url && (
-          <div style={{ flex: "1 1 240px", minWidth: 200 }}>
-            <div className="stat-label" style={{ marginBottom: 6 }}>Coordinate-aware patch mosaic</div>
-            <a href={absUrl(files.wsi_coordinate_mosaic_url) ?? "#"} target="_blank" rel="noopener noreferrer">
-              <img
-                src={absUrl(files.wsi_coordinate_mosaic_url) ?? ""}
-                alt="WSI Coordinate Mosaic"
-                style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }}
-              />
-            </a>
+          <div style={{ flex: "1 1 400px", minWidth: 240 }}>
+            {files.wsi_coordinate_mosaic_dzi_url ? (
+              <>
+                <DeepZoomViewer title="Coordinate-aware patch mosaic" dziUrl={absUrl(files.wsi_coordinate_mosaic_dzi_url)!} height="350px" />
+                <a href={absUrl(files.wsi_coordinate_mosaic_url) ?? "#"} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: "inline-block", marginTop: 8, fontSize: "0.75rem" }}>⬇ Download Image</a>
+              </>
+            ) : (
+              <>
+                <div className="stat-label" style={{ marginBottom: 6 }}>Coordinate-aware patch mosaic</div>
+                <a href={absUrl(files.wsi_coordinate_mosaic_url) ?? "#"} target="_blank" rel="noopener noreferrer">
+                  <img
+                    src={absUrl(files.wsi_coordinate_mosaic_url) ?? ""}
+                    alt="WSI Coordinate Mosaic"
+                    style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }}
+                  />
+                </a>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -199,11 +219,20 @@ function SpatialWsiVisualization({ files }: { files: PatchResultFiles }) {
               </div>
             )}
             {files.wsi_spatial_contact_sheet_url && (
-              <div style={{ flex: "1 1 200px" }}>
-                <div className="stat-label" style={{ marginBottom: 6 }}>Spatial Contact Sheet</div>
-                <a href={absUrl(files.wsi_spatial_contact_sheet_url) ?? "#"} target="_blank" rel="noopener noreferrer">
-                  <img src={absUrl(files.wsi_spatial_contact_sheet_url) ?? ""} alt="Contact Sheet" style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }} />
-                </a>
+              <div style={{ flex: "1 1 400px", minWidth: 240 }}>
+                {files.wsi_spatial_contact_sheet_dzi_url ? (
+                  <>
+                    <DeepZoomViewer title="Spatial Contact Sheet" dziUrl={absUrl(files.wsi_spatial_contact_sheet_dzi_url)!} height="350px" />
+                    <a href={absUrl(files.wsi_spatial_contact_sheet_url) ?? "#"} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: "inline-block", marginTop: 8, fontSize: "0.75rem" }}>⬇ Download Image</a>
+                  </>
+                ) : (
+                  <>
+                    <div className="stat-label" style={{ marginBottom: 6 }}>Spatial Contact Sheet</div>
+                    <a href={absUrl(files.wsi_spatial_contact_sheet_url) ?? "#"} target="_blank" rel="noopener noreferrer">
+                      <img src={absUrl(files.wsi_spatial_contact_sheet_url) ?? ""} alt="Contact Sheet" style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--border)" }} />
+                    </a>
+                  </>
+                )}
               </div>
             )}
           </div>
