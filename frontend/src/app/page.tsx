@@ -260,7 +260,7 @@ export default function HomePage() {
             <div className="topbar-subtitle">MultimodalAI GUI · prototype</div>
           </div>
         </div>
-        <span className="topbar-badge">MVP v0.4.1</span>
+        <span className="topbar-badge">MVP v0.7.3</span>
       </header>
 
       {/* ── Backend status ───────────────────────────────────────────────── */}
@@ -351,23 +351,28 @@ export default function HomePage() {
               <ResultCard data={rnaResult} />
 
               {hasCanvas && (
-                <>
-                  <div className="section-label" style={{ marginTop: 20 }}>
-                    Morphology Canvas
-                  </div>
-                  <div className="card" style={{ padding: "20px 24px 24px" }}>
+                <details style={{ marginTop: 20 }}>
+                  <summary style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                    ▸ Legacy Morphology Canvas
+                  </summary>
+                  <div className="card" style={{ padding: "20px 24px 24px", marginTop: 10 }}>
                     <CanvasViewer canvasFiles={canvasFiles} />
                   </div>
-                </>
+                </details>
               )}
 
               {!hasCanvas &&
                 rnaResult.status === "completed" &&
                 rnaResult.canvas_enabled && (
-                  <div className="info-box info" style={{ marginTop: 14 }}>
-                    Canvas was enabled but no canvas files were returned. Check
-                    backend logs for errors in the morphology retrieval step.
-                  </div>
+                  <details style={{ marginTop: 14 }}>
+                    <summary style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                      ▸ Legacy Morphology Canvas
+                    </summary>
+                    <div className="info-box info" style={{ marginTop: 8 }}>
+                      Canvas was enabled but no canvas files were returned. Check
+                      backend logs for errors in the morphology retrieval step.
+                    </div>
+                  </details>
                 )}
             </>
           )}

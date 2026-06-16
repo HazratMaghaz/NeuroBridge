@@ -196,7 +196,7 @@ function ReferenceMorphologyPanel({
       </p>
 
       <div className="info-box" role="alert" style={{ marginBottom: 14, backgroundColor: "rgba(245, 158, 11, 0.1)", borderLeft: "4px solid var(--amber-500)" }}>
-        ⚠ <strong>Warning:</strong> {refMorph.warning || "This is not a generated WSI and not RNA-to-WSI reconstruction. Coordinates belong to retrieved reference WSIs from the internal patch bank."}
+        ⚠ <strong>Warning:</strong> Reference retrieval only. This is not RNA-to-WSI reconstruction. Coordinates belong to retrieved reference WSIs from the internal patch bank.
       </div>
 
       <div className="result-grid" style={{ marginBottom: 16 }}>
@@ -243,22 +243,7 @@ function ReferenceMorphologyPanel({
         )}
       </div>
 
-      {/* Downloads */}
-      <div className="dl-group" style={{ marginBottom: 0 }}>
-        <div className="dl-group-label">Reference Morphology Data</div>
-        <div className="dl-group-links">
-          {files.reference_morphology_retrieval_csv_url && (
-            <a className="dl-link" href={absUrl(files.reference_morphology_retrieval_csv_url) || "#"} target="_blank" rel="noopener noreferrer">
-              ⬇ Retrieval CSV
-            </a>
-          )}
-          {files.reference_morphology_summary_url && (
-            <a className="dl-link" href={absUrl(files.reference_morphology_summary_url) || "#"} target="_blank" rel="noopener noreferrer">
-              📄 Summary JSON
-            </a>
-          )}
-        </div>
-      </div>
+
     </div>
   );
 }
@@ -303,6 +288,31 @@ function DownloadsSection({
               ⬇ Predictions CSV
             </a>
           )}
+          {hasRefMorph && files.reference_morphology_retrieval_csv_url && (
+            <a className="dl-link" href={absUrl(files.reference_morphology_retrieval_csv_url) || "#"} target="_blank" rel="noopener noreferrer">
+              ⬇ Ref. Morphology Retrieval CSV
+            </a>
+          )}
+          {hasRefMorph && files.reference_morphology_summary_url && (
+            <a className="dl-link" href={absUrl(files.reference_morphology_summary_url) || "#"} target="_blank" rel="noopener noreferrer">
+              📄 Ref. Morphology Summary JSON
+            </a>
+          )}
+          {hasRefMorph && files.reference_morphology_top_panel_url && (
+            <a className="dl-link" href={absUrl(files.reference_morphology_top_panel_url) || "#"} target="_blank" rel="noopener noreferrer">
+              🖼️ Top Patch Panel
+            </a>
+          )}
+          {hasRefMorph && files.reference_morphology_source_panel_url && (
+            <a className="dl-link" href={absUrl(files.reference_morphology_source_panel_url) || "#"} target="_blank" rel="noopener noreferrer">
+              🖼️ Source-Grouped Panel
+            </a>
+          )}
+          {hasRefMorph && files.reference_morphology_coordinate_layout_url && (
+            <a className="dl-link" href={absUrl(files.reference_morphology_coordinate_layout_url) || "#"} target="_blank" rel="noopener noreferrer">
+              🖼️ Coordinate Layout
+            </a>
+          )}
         </div>
       </div>
 
@@ -319,9 +329,12 @@ function DownloadsSection({
               marginBottom: 8,
             }}
           >
-            ▸ Morphology canvas files
+            ▸ Advanced / Legacy Outputs
           </summary>
           <div className="dl-group-links" style={{ marginTop: 8 }}>
+            <a className="dl-link" href={`data:application/json,${encodeURIComponent(JSON.stringify(files, null, 2))}`} download="raw_api_response.json">
+              📄 Raw API Response JSON
+            </a>
             {files.canvas_index_url && (
               <a
                 className="dl-link"
@@ -419,7 +432,7 @@ export default function ResultCard({ data }: Props) {
               </div>
             </div>
             <div className="stat-block">
-              <div className="stat-label">Predicted Class</div>
+              <div className="stat-label">GBM/LGG Similarity</div>
               <div
                 className={`stat-value large ${
                   isGbm ? "class-gbm" : "class-lgg"

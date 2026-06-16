@@ -161,7 +161,8 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
       <div className="card-title">🧬 RNA-seq Inference</div>
       <p className="card-desc">
         Upload a patient-level expression CSV (rows = patients, columns = gene IDs /
-        patient_id). The backend runs the frozen Phase&nbsp;14 GBM/LGG-like model.
+        patient_id). The system accepts multi-row CSVs for batch processing.
+        The backend runs the frozen Phase&nbsp;14 GBM/LGG-like model.
       </p>
 
       <form onSubmit={submit}>
@@ -200,16 +201,6 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
             />
             Run inference
           </label>
-          <label className="option-item" htmlFor="cb-make-canvas">
-            <input
-              id="cb-make-canvas"
-              type="checkbox"
-              checked={makeCanvas}
-              onChange={(e) => setMakeCanvas(e.target.checked)}
-              disabled={loading}
-            />
-            Generate morphology canvas
-          </label>
           <label className="option-item" htmlFor="cb-run-ref-morph">
             <input
               id="cb-run-ref-morph"
@@ -220,7 +211,31 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
             />
             Run reference morphology retrieval
           </label>
-          <label className="option-item" htmlFor="sel-max-cases">
+          <label className="option-item option-item-disabled" htmlFor="cb-batch-mode" style={{ opacity: 0.6 }}>
+            <input
+              id="cb-batch-mode"
+              type="checkbox"
+              checked={true}
+              disabled={true}
+            />
+            Batch mode: process multiple rows/samples from one RNA CSV
+          </label>
+        </div>
+        
+        <details style={{ marginBottom: 14, marginTop: -4 }}>
+          <summary style={{ cursor: "pointer", fontSize: "0.75rem", color: "var(--text-muted)" }}>Legacy Options</summary>
+          <div className="option-row" style={{ marginTop: 8 }}>
+            <label className="option-item" htmlFor="cb-make-canvas">
+              <input
+                id="cb-make-canvas"
+                type="checkbox"
+                checked={makeCanvas}
+                onChange={(e) => setMakeCanvas(e.target.checked)}
+                disabled={loading}
+              />
+              Generate legacy morphology canvas
+            </label>
+            <label className="option-item" htmlFor="sel-max-cases">
             Max cases&nbsp;
             <select
               id="sel-max-cases"
@@ -234,7 +249,8 @@ export default function RnaUpload({ onResult, onRunStart }: Props) {
               <option value={10}>10</option>
             </select>
           </label>
-        </div>
+          </div>
+        </details>
 
         {/* Submit */}
         <div className="btn-row">
