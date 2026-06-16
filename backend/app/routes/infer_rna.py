@@ -1,3 +1,7 @@
+# CNS JSON safety patch: prevents ndarray JSON serialization failures
+from cns_multimodalai.inference.json_safety import patch_json_encoder
+patch_json_encoder()
+
 """
 RNA inference route for CNS-MultiModalAI GUI MVP.
 """
