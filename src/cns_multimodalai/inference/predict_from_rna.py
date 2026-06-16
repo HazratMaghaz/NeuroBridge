@@ -80,11 +80,11 @@ def run_rna_inference(
         pred_img = predict_image_embedding_from_rna(data, mol2img)
 
     # Save patient embeddings to a dict
-    result["predicted_image_embeddings"] = {}
+    result["_predicted_image_embeddings"] = {}
     patient_to_idx = {pid: i for i, pid in enumerate(data["external_patient_ids"])}
     for pid in pred_df["patient_id"].tolist():
         idx = patient_to_idx[pid]
-        result["predicted_image_embeddings"][pid] = pred_img[idx]
+        result["_predicted_image_embeddings"][pid] = pred_img[idx]
 
     report_path = output_dir / "rna_inference_report.md"
     generate_markdown_report(

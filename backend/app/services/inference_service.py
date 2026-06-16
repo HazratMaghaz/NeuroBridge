@@ -15,11 +15,74 @@ import shutil
 import zipfile
 import uuid
 from urllib.parse import quote
+import numpy as np
 
 from fastapi import UploadFile
 
 from cns_multimodalai.inference.predict_from_rna import run_rna_inference
 from cns_multimodalai.inference.predict_from_patches import predict_from_patch_folder
+
+def make_json_safe(obj):
+    """
+    Recursively convert numpy/path objects into JSON-safe Python objects.
+    Prevents FastAPI response failures caused by ndarray, np.float32, np.int64, Path, etc.
+    """
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+
+    if isinstance(obj, np.integer):
+        return int(obj)
+
+    if isinstance(obj, np.floating):
+        return float(obj)
+
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+
+    if isinstance(obj, Path):
+        return str(obj)
+
+    if isinstance(obj, dict):
+        return {str(k): make_json_safe(v) for k, v in obj.items()}
+
+    if isinstance(obj, (list, tuple, set)):
+        return [make_json_safe(v) for v in obj]
+
+    return obj
+
+
+def remove_internal_arrays(result):
+    """
+    Remove internal embedding vectors before returning API response.
+    These vectors are used for backend retrieval only and should not be sent to frontend.
+    """
+    if not isinstance(result, dict):
+        return result
+
+    internal_keys = [
+        "_predicted_ctranspath_embedding",
+        "_predicted_image_embedding",
+        "_query_vector",
+        "predicted_ctranspath_embedding",
+        "predicted_image_embedding",
+        "query_vector",
+        "_predicted_image_embeddings",
+        "predicted_image_embeddings"
+    ]
+
+    for key in internal_keys:
+        if key in result:
+            value = result.pop(key)
+            if isinstance(value, dict):
+                # result["_predicted_image_embeddings"] is a dict of patient_id -> ndarray
+                result[f"{key}_omitted"] = "Internal vectors omitted from API response."
+            elif isinstance(value, np.ndarray):
+                result[f"{key}_shape"] = list(value.shape)
+                result[f"{key}_omitted"] = "Internal vector omitted from API response."
+            else:
+                result[f"{key}_omitted"] = "Internal vector omitted from API response."
+
+    return result
 
 PROJECT_ROOT = Path(os.getenv("CNS_PROJECT_ROOT", "/path/to/CNS-MultiModalAI"))
 GUI_RUN_ROOT = Path(os.getenv("CNS_GUI_RUN_ROOT", str(PROJECT_ROOT / "results" / "gui_mvp_runs")))
@@ -495,37 +558,62 @@ async def handle_rna_upload(
                         "note": row.get("note"),
                     })
 
-            if run_reference_morphology and result.get("predicted_image_embeddings"):
-                # Run for the first case
-                pid, emb = list(result["predicted_image_embeddings"].items())[0]
-                from cns_multimodalai.inference.rna_reference_morphology_retrieval import run_reference_morphology_retrieval
-                ref_out_dir = run_dir / "inference" / "reference_morphology"
-                ref_summary = run_reference_morphology_retrieval(
-                    query_embedding=emb,
-                    query_patient_id=pid,
-                    output_dir=ref_out_dir,
-                    top_k=100,
-                    max_patch_images=40,
-                )
+            if run_reference_morphology:
+                query_vector = None
+                pid = None
                 
-                response["reference_morphology"] = {
-                    "status": ref_summary.get("status", "failed"),
-                    "method": ref_summary.get("method"),
-                    "top_k": ref_summary.get("top_k"),
-                    "patch_images_extracted": ref_summary.get("patch_images_extracted"),
-                    "unique_source_slides": ref_summary.get("unique_source_slides"),
-                    "best_similarity_score": ref_summary.get("best_similarity_score"),
-                    "mean_top_similarity_score": ref_summary.get("mean_top_similarity_score"),
-                    "warning": ref_summary.get("warning"),
-                }
-                
-                result_files.update({
-                    "reference_morphology_top_panel_url": _result_file_url(ref_summary.get("top_panel"), run_dir) if ref_summary.get("top_panel") else None,
-                    "reference_morphology_source_panel_url": _result_file_url(ref_summary.get("source_panel"), run_dir) if ref_summary.get("source_panel") else None,
-                    "reference_morphology_coordinate_layout_url": _result_file_url(ref_summary.get("coordinate_layout"), run_dir) if ref_summary.get("coordinate_layout") else None,
-                    "reference_morphology_retrieval_csv_url": _result_file_url(ref_summary.get("retrieval_csv"), run_dir) if ref_summary.get("retrieval_csv") else None,
-                    "reference_morphology_summary_url": _result_file_url(ref_out_dir / "reference_morphology_summary.json", run_dir) if (ref_out_dir / "reference_morphology_summary.json").exists() else None,
-                })
+                # Try to extract from the dictionary format we set up in predict_from_rna
+                for key in ["_predicted_image_embeddings", "predicted_image_embeddings"]:
+                    if isinstance(result, dict) and key in result and result[key]:
+                        pid, query_vector = list(result[key].items())[0]
+                        break
+                        
+                # Fallback to single vector if it exists
+                if query_vector is None:
+                    for key in [
+                        "_predicted_ctranspath_embedding",
+                        "_predicted_image_embedding",
+                        "predicted_ctranspath_embedding",
+                        "predicted_image_embedding",
+                    ]:
+                        if isinstance(result, dict) and key in result and result[key] is not None:
+                            query_vector = result[key]
+                            # Use first prediction's patient id if available
+                            if response.get("prediction_preview") and len(response["prediction_preview"]) > 0:
+                                pid = response["prediction_preview"][0].get("patient_id", "unknown_patient")
+                            else:
+                                pid = "unknown_patient"
+                            break
+
+                if query_vector is not None:
+                    from cns_multimodalai.inference.rna_reference_morphology_retrieval import run_reference_morphology_retrieval
+                    ref_out_dir = run_dir / "inference" / "reference_morphology"
+                    ref_summary = run_reference_morphology_retrieval(
+                        query_embedding=query_vector,
+                        query_patient_id=pid,
+                        output_dir=ref_out_dir,
+                        top_k=100,
+                        max_patch_images=40,
+                    )
+                    
+                    response["reference_morphology"] = {
+                        "status": ref_summary.get("status", "failed"),
+                        "method": ref_summary.get("method"),
+                        "top_k": ref_summary.get("top_k"),
+                        "patch_images_extracted": ref_summary.get("patch_images_extracted"),
+                        "unique_source_slides": ref_summary.get("unique_source_slides"),
+                        "best_similarity_score": ref_summary.get("best_similarity_score"),
+                        "mean_top_similarity_score": ref_summary.get("mean_top_similarity_score"),
+                        "warning": ref_summary.get("warning"),
+                    }
+                    
+                    result_files.update({
+                        "reference_morphology_top_panel_url": _result_file_url(ref_summary.get("top_panel"), run_dir) if ref_summary.get("top_panel") else None,
+                        "reference_morphology_source_panel_url": _result_file_url(ref_summary.get("source_panel"), run_dir) if ref_summary.get("source_panel") else None,
+                        "reference_morphology_coordinate_layout_url": _result_file_url(ref_summary.get("coordinate_layout"), run_dir) if ref_summary.get("coordinate_layout") else None,
+                        "reference_morphology_retrieval_csv_url": _result_file_url(ref_summary.get("retrieval_csv"), run_dir) if ref_summary.get("retrieval_csv") else None,
+                        "reference_morphology_summary_url": _result_file_url(ref_out_dir / "reference_morphology_summary.json", run_dir) if (ref_out_dir / "reference_morphology_summary.json").exists() else None,
+                    })
 
             response["result_files"] = result_files
 
@@ -540,11 +628,14 @@ async def handle_rna_upload(
                 rna_prob = None
             response["clinical_relevance"] = _build_clinical_relevance(rna_class, rna_prob, "rna_seq")
 
+            # Remove internal arrays before returning
+            response["inference_result"] = remove_internal_arrays(response["inference_result"])
+
         except Exception as e:
             response["status"] = "failed"
             response["error"] = repr(e)
 
-    return response
+    return make_json_safe(response)
 
 
 async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict:
@@ -591,7 +682,7 @@ async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict
     if n_images == 0:
         response["status"] = "failed"
         response["error"] = "No patch images found in uploaded ZIP. Expected PNG/JPG/TIF/WEBP files."
-        return response
+        return make_json_safe(response)
 
     if run_model:
         try:
@@ -679,7 +770,7 @@ async def handle_patch_upload(file: UploadFile, run_model: bool = False) -> dict
     else:
         response["note"] = "Patch ZIP uploaded and extracted. Set run_model=true to run patch inference."
 
-    return response
+    return make_json_safe(response)
 
 
 def handle_wsi_path_inference(wsi_path: str, max_patches: int = 100, run_model: bool = True) -> dict:
@@ -728,7 +819,7 @@ def handle_wsi_path_inference(wsi_path: str, max_patches: int = 100, run_model: 
         if n_images == 0:
             response["status"] = "failed"
             response["error"] = "WSI patch extraction yielded 0 patches. Check tissue masking."
-            return response
+            return make_json_safe(response)
 
         if run_model:
             output_dir = run_dir / "inference"
@@ -832,5 +923,5 @@ def handle_wsi_path_inference(wsi_path: str, max_patches: int = 100, run_model: 
         response["status"] = "failed"
         response["error"] = repr(e)
 
-    return response
+    return make_json_safe(response)
 
