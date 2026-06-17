@@ -1,3 +1,4 @@
+import inspect
 import os
 import shutil
 import uuid
@@ -24,6 +25,17 @@ from cns_multimodalai.inference.rna_reference_morphology_retrieval import run_re
 # Removed invalid top-level import: predict_from_patches does not expose run_patch_inference/extract_and_classify_ctranspath.
 # Patch batch should reuse existing service logic or import real functions lazily inside the patch batch handler.
 # Removed invalid invented import: this function/module does not exist in the project.
+
+def _call_wsi_path_inference_safe(*args, **kwargs):
+    """
+    Compatibility wrapper for the single WSI workflow.
+    The real handle_wsi_path_inference currently accepts only:
+    wsi_path, max_patches, run_model.
+    Batch code may pass extra keys like output_dir/sample_id; filter them safely.
+    """
+    sig = inspect.signature(handle_wsi_path_inference)
+    accepted_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+    return handle_wsi_path_inference(*args, **accepted_kwargs)
 
 
 async def handle_batch_rna_upload(
@@ -333,7 +345,7 @@ async def handle_batch_wsi_upload(file: UploadFile) -> dict:
             out_dir.mkdir(exist_ok=True)
             
             try:
-                res = handle_wsi_path_inference(wsi_path, output_dir=out_dir, max_patches=max_p)
+                res = _call_wsi_path_inference_safe(wsi_path, output_dir=out_dir, max_patches=max_p)
                 pred_path = res.get("predictions_csv")
                 
                 if pred_path and Path(pred_path).exists():
