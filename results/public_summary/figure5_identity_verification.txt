@@ -1,0 +1,7 @@
+FIGURE 5 IDENTITY VERIFICATION REPORT
+============================================================
+Queries Evaluated: TCGA-02-0003, TCGA-CS-4941
+Ranks Compared Per Query: 1..40
+Total Rows Compared: 80
+Total Rank Mismatches Detected: 67
+DECISION: Figure 5 replacement REQUIRED.
