@@ -13,7 +13,7 @@
 - **Explanation:** "Now we demonstrate the reverse: image-to-molecular inference. The user uploads pre-extracted histology patches. The backend generates 768-dimensional CTransPath embeddings and feeds them into our frozen Phase 15G model. This avoids exposing the end-user to raw Python scripts while standardizing the pipeline."
 
 ## 4. WSI Local-Path Workflow (3:00 - 4:00)
-- **Action:** Switch to the **WSI Analysis** tab. Input an absolute path to a local `.svs` file (e.g., `/path/to/CNS-MultiModalAI/data/wsi/example.svs`) and set max patches to 20.
+- **Action:** Switch to the **WSI Analysis** tab. Input an absolute path to a local `.svs` file (e.g., `/path/to/data/example.svs`) and set max patches to 20.
 - **Explanation:** "For realistic pathology workflows, requiring ZIPs is cumbersome. We implemented a 'Local WSI Path' mode. The backend uses OpenSlide to automatically mask tissue, randomly sample diagnostic regions, and extract patches in real-time. This is highly scalable and completely bypasses browser file-size upload limits."
 
 ## 5. Explaining the Output Matrices (4:00 - 5:00)

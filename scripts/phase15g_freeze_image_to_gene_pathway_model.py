@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import json
 import pandas as pd
@@ -8,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from scipy.stats import pearsonr
 
-PROJECT_ROOT = "/path/to/CNS-MultiModalAI"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 IMAGE_FEAT_PATH = os.path.join(PROJECT_ROOT, "features/ctranspath_7B_wsi_streaming_full/patient_level_ctranspath_mean_embeddings.csv")
 TARGET_PATH = os.path.join(PROJECT_ROOT, "results/tables/phase11a_image_to_gene_pathway_prediction/phase11a_target_gene_pathway_matrix.csv")

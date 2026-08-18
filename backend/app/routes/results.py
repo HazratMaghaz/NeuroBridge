@@ -8,7 +8,7 @@ import os
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-PROJECT_ROOT = Path(os.getenv("CNS_PROJECT_ROOT", "/path/to/CNS-MultiModalAI"))
+PROJECT_ROOT = Path(os.getenv("CNS_PROJECT_ROOT", str(Path(__file__).resolve().parents[3])))
 GUI_RUN_ROOT = Path(os.getenv("CNS_GUI_RUN_ROOT", str(PROJECT_ROOT / "results" / "gui_mvp_runs")))
 
 router = APIRouter(prefix="/api/results", tags=["Results"])
@@ -52,7 +52,7 @@ async def get_deepzoom_file(run_id: str, relative_path: str):
     import os
     from fastapi import HTTPException
 
-    run_root = Path(os.environ.get("CNS_GUI_RUN_ROOT", "/path/to/CNS-MultiModalAI/results/gui_mvp_runs"))
+    run_root = Path(os.environ.get("CNS_GUI_RUN_ROOT", str(PROJECT_ROOT / "results" / "gui_mvp_runs")))
     run_dir = (run_root / run_id).resolve()
     deepzoom_root = (run_dir / "deepzoom").resolve()
     target = (deepzoom_root / relative_path).resolve()

@@ -127,7 +127,7 @@ export default function WsiUpload({ onResult, onRunStart }: Props) {
               value={wsiPath}
               onChange={(e) => setWsiPath(e.target.value)}
               disabled={loading}
-              placeholder="/path/to/CNS-MultiModalAI/data/wsi/example.svs"
+              placeholder="/path/to/data/example.svs"
               style={{
                 width: "100%",
                 padding: "10px 14px",

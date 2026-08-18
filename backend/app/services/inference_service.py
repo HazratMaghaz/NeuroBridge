@@ -142,7 +142,7 @@ def remove_internal_arrays(result):
 
     return result
 
-PROJECT_ROOT = Path(os.getenv("CNS_PROJECT_ROOT", "/path/to/CNS-MultiModalAI"))
+PROJECT_ROOT = Path(os.getenv("CNS_PROJECT_ROOT", str(Path(__file__).resolve().parents[3])))
 GUI_RUN_ROOT = Path(os.getenv("CNS_GUI_RUN_ROOT", str(PROJECT_ROOT / "results" / "gui_mvp_runs")))
 
 WARNING_TEXT = (

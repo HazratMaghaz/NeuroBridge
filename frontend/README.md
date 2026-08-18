@@ -1,3 +1,9 @@
+Set the cloned repository root once in your shell:
+
+```bash
+export CNS_PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+```
+
 # CNS-MultiModalAI Frontend GUI MVP
 
 > ⚠️ **RESEARCH PROTOTYPE** — Outputs GBM-like vs LGG-like similarity for academic
@@ -36,7 +42,7 @@ nvm use 20
 ### 1 — Install frontend dependencies
 
 ```bash
-cd /path/to/CNS-MultiModalAI/frontend
+cd "$CNS_PROJECT_ROOT/frontend"
 npm install
 ```
 
@@ -50,7 +56,7 @@ cp .env.example .env.local
 ### 3 — Start the backend (in a separate terminal)
 
 ```bash
-cd /path/to/CNS-MultiModalAI
+cd "$CNS_PROJECT_ROOT"
 # Activate the project venv if needed, then:
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
@@ -58,7 +64,7 @@ uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ### 4 — Start the frontend dev server
 
 ```bash
-cd /path/to/CNS-MultiModalAI/frontend
+cd "$CNS_PROJECT_ROOT/frontend"
 npm run dev
 ```
 
