@@ -13,8 +13,16 @@ from datetime import datetime
 OUT_DIR = Path("manuscript_figures/Figure_05_Gene2Morph_LOO")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-Q0_DIR = Path("results/genemorph_loo_rerun_20260818/query_00_TCGA-02-0003")
-Q4_DIR = Path("results/genemorph_loo_rerun_20260818/query_04_TCGA-CS-4941")
+import sys
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--input-dir", default="results/genemorph_loo_rerun_20260818_final", help="Path to LOO rerun output root")
+args = parser.parse_args()
+
+IN_DIR = Path(args.input_dir)
+Q0_DIR = IN_DIR / "query_00_TCGA-02-0003"
+Q4_DIR = IN_DIR / "query_04_TCGA-CS-4941"
 
 q0_patch_panel = Image.open(Q0_DIR / "reference_morphology_top_patch_panel.jpg")
 q0_coord_layout = Image.open(Q0_DIR / "reference_morphology_coordinate_layout.jpg")
@@ -64,6 +72,6 @@ with open(prov_path, "w") as f:
     f.write("Mode: Leave-One-Patient-Out (LOO) Query-Patient Self-Exclusion\n")
     f.write("Query 0: TCGA-02-0003 (GBM) -> Top Source Slide TCGA-06-5856 (49/300 patches)\n")
     f.write("Query 4: TCGA-CS-4941 (LGG) -> Top Source Slide TCGA-DU-7011 (26/300 patches)\n")
-    f.write("Source run: results/genemorph_loo_rerun_20260818/\n")
+    f.write(f"Source run: {IN_DIR}\n")
 
 print(f"Generated Figure 5 LOO artifacts in {OUT_DIR}")

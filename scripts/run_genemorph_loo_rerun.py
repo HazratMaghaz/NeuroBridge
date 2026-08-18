@@ -24,6 +24,7 @@ from datetime import datetime
 # Ensure src/ is in PYTHONPATH
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+from cns_multimodalai import config
 from cns_multimodalai.inference.rna_reference_morphology_retrieval import (
     normalize_tcga_patient_id,
     canonicalize_diagnosis_label,
@@ -500,7 +501,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--h5-dir",
-        default="/path/to/CNS-MultiModalAI/features/ctranspath_7B_wsi_streaming_full/slide_h5",
+        default=str(config.PROJECT_ROOT / "features" / "ctranspath_7B_wsi_streaming_full" / "slide_h5"),
         help="Path to H5 feature bank",
     )
     parser.add_argument(
