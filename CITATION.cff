@@ -1,18 +1,18 @@
 cff-version: 1.2.0
-message: "If you use this software in your research, please cite it as below."
+message: "If you use NeuroBridge / CNS-MultiModalAI in your research, please cite it as below."
+title: "NeuroBridge: Deep Multimodal AI Framework for CNS Tumor Classification and Morphology Retrieval"
+type: software
 authors:
-  - family-names: "Maghaz"
-    given-names: "Hazrat"
-    orcid: "https://orcid.org/0000-0000-0000-0000"
-title: "NeuroBridge: A Bidirectional Multimodal AI Framework for Missing-Modality Glioma Subtyping and Morphology Retrieval"
-version: 1.0.0
-date-released: 2026-08-18
-url: "https://github.com/HazratMaghaz/CNS-MultiModalAI"
+  - family-names: Maghaz
+    given-names: Hazrat
+repository-code: "https://github.com/HazratMaghaz/CNS-MultiModalAI"
+version: "1.0.0"
+date-released: "2026-08-18"
 keywords:
+  - bioinformatics
   - computational pathology
   - multimodal AI
   - glioblastoma
   - lower grade glioma
-  - gene expression
-  - CTransPath
-  - missing modality
+  - TCGA
+  - Gene2Morph

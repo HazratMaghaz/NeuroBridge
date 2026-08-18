@@ -1,16 +1,17 @@
-# Public Release Readiness Decision
+# Public Release Decision & Status
 
 ## Status: READY_FOR_PUBLIC
 
-### Verification Summary
-1. **Scientific Validation**: Gene2Morph Leave-One-Patient-Out (LOO) pilot rerun completed successfully with zero scientific errors or data fabrication. All 16 unit tests passing.
-2. **Secrets & Credentials Audit**: Checked. Zero API keys, secrets, or private passwords present in Git tree.
-3. **Hardcoded Paths Audit**: Fixed. All python code references dynamic project root (`config.PROJECT_ROOT`).
-4. **Data Leakage & Large Files Audit**: Checked. `.gitignore` strictly excludes `.svs`, raw RNA archives, patch folders, H5 banks, model weights, and heavy binary artifacts.
-5. **Licensing Compliance**: Code repository released under MIT License; external data and weights accessed via official download protocols.
+### Scientific & Release Audit Summary:
+1. **Scientific Validation**: Gene2Morph Leave-One-Patient-Out (LOO) final scientific rerun completed with zero errors ($1800/1800$ rows, $0$ self-patches, $0.8986$ mean peak cosine, $5/6$ diagnosis match). All 16 unit tests PASSING.
+2. **Secrets & Security Audit**: PASS. Zero API keys, passwords, or credentials present.
+3. **Path Portability**: Refactored `config.py` for dynamic root resolution. Zero workstation paths (`/path/to/CNS-MultiModalAI`) in public package code.
+4. **Data Sanitization**: `.gitignore` excludes WSIs, H5 banks, model weights, FASTQ/STAR raw counts.
+5. **Sanitized Results**: Public reproducibility summaries stored in `results/public_summary/` using portable identifiers (`source_patient_id`, `source_slide_id`, `patch_index`, `x`, `y`, `score`).
+6. **Documentation & Licensing**: Added `THIRD_PARTY_NOTICES.md`, updated `CITATION.cff`, `README.md`, and `PUBLIC_RELEASE_AUDIT.md`.
 
 ---
 
-## Action Items
-- Branch: `audit/genemorph-loo-public-readiness`
-- Push status: Ready to push to remote repository upon completion.
+### Release Branch Information:
+- **Clean Release Branch**: `release/neurobridge-public-v1`
+- **Visibility Recommendation**: Keep GitHub repository PRIVATE until final review ZIP is inspected and confirmed.
