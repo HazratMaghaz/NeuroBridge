@@ -123,3 +123,7 @@ frontend/.env*.local
 frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
+
+# Internal review / development artifacts
+review_packages/
+notebooks/
