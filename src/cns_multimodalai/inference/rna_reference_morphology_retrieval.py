@@ -357,6 +357,8 @@ def run_reference_morphology_retrieval(
     output_dir: Path,
     top_k: int = 100,
     max_patch_images: int = 40,
+    chunk_size: int = 128,
+    patch_read_size: int = 256,
     h5_dir: str = None,
     exclude_query_patient: bool = False,
     strict_loo: bool = False,
@@ -402,6 +404,7 @@ def run_reference_morphology_retrieval(
     searched_h5_files = 0
     skipped_unresolved_h5_files = 0
     excluded_self_patch_candidates = 0
+    counter = 0
     
     for h5_path in h5_files:
         h5_order = h5_order_map[str(h5_path)]
@@ -475,8 +478,9 @@ def run_reference_morphology_retrieval(
                             "source_diagnosis_label": attrs.get("diagnosis_label"),
                         }
 
-                        # Priority tuple for heap: (score, -h5_order, -global_idx, record)
-                        item = (score, -h5_order, -global_idx, record)
+                        counter += 1
+                        # Priority tuple for heap: (score, -h5_order, -global_idx, counter, record)
+                        item = (score, -h5_order, -global_idx, counter, record)
 
                         if len(top_heap) < top_k:
                             heapq.heappush(top_heap, item)
@@ -504,7 +508,7 @@ def run_reference_morphology_retrieval(
     )
 
     # Explicit final deterministic sort: score DESC, h5_path ASC, patch_index ASC
-    top_records = [item[3] for item in top_heap]
+    top_records = [item[4] for item in top_heap]
     top_records.sort(key=lambda rec: (-rec["score"], str(rec["h5_path"]), int(rec["patch_index"])))
 
     for rank, rec in enumerate(top_records, start=1):
