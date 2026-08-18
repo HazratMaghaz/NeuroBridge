@@ -86,11 +86,12 @@ logs/
 *.jpg
 *.jpeg
 
-# Allow docs & manuscript images
+# Allow docs, manuscript images & public results summary
 !docs/**/*.png
 !docs/**/*.jpg
 !docs/**/*.jpeg
 !manuscript_figures/**
+!results/public_summary/**
 
 # ============================================================
 # Secrets / credentials
