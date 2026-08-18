@@ -1,7 +1,8 @@
 from pathlib import Path
 import os
 
-PROJECT_ROOT = Path(os.getenv("CNS_PROJECT_ROOT", "/path/to/CNS-MultiModalAI"))
+DEFAULT_ROOT = Path(__file__).resolve().parent.parent.parent
+PROJECT_ROOT = Path(os.getenv("CNS_PROJECT_ROOT", os.getenv("PROJECT_ROOT", str(DEFAULT_ROOT))))
 
 # Internal reference cohort
 SELECTED_CSV = PROJECT_ROOT / "metadata" / "selected_best_slide_per_patient.csv"

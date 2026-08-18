@@ -24,6 +24,7 @@ def run_rna_inference(
     make_morphology_canvas=True,
     strategy="log2_fpkm_uq_plus1",
     max_cases=None,
+    exclude_query_patient=False,
 ):
     expression_csv = Path(expression_csv)
 
@@ -57,7 +58,11 @@ def run_rna_inference(
         patient_to_idx = {pid: i for i, pid in enumerate(data["external_patient_ids"])}
         for pid in pred_df["patient_id"].tolist():
             idx = patient_to_idx[pid]
-            patch_paths, retrieval_df = retrieve_real_patches_from_predicted_image_embedding(pred_img[idx])
+            patch_paths, retrieval_df = retrieve_real_patches_from_predicted_image_embedding(
+                pred_img[idx],
+                query_patient_id=pid,
+                exclude_query_patient=exclude_query_patient,
+            )
 
             case_dir = ensure_dir(output_dir / "morphology_canvas" / str(pid))
             canvas_path = case_dir / f"{pid}_real_patch_morphology_canvas.jpg"

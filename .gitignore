@@ -86,10 +86,12 @@ logs/
 *.jpg
 *.jpeg
 
-# Allow docs images if you later want them tracked
+# Allow docs, manuscript images & public results summary
 !docs/**/*.png
 !docs/**/*.jpg
 !docs/**/*.jpeg
+!manuscript_figures/**
+!results/public_summary/**
 
 # ============================================================
 # Secrets / credentials
@@ -121,3 +123,7 @@ frontend/.env*.local
 frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
+
+# Internal review / development artifacts
+review_packages/
+notebooks/

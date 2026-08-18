@@ -4,8 +4,9 @@ import pandas as pd
 import numpy as np
 import joblib
 
-PROJECT_ROOT = os.getenv("PROJECT_ROOT", "/path/to/CNS-MultiModalAI")
-MODEL_DIR = os.path.join(PROJECT_ROOT, "models", "phase15g_image_to_gene_pathway")
+from cns_multimodalai import config
+
+MODEL_DIR = os.path.join(str(config.PROJECT_ROOT), "models", "phase15g_image_to_gene_pathway")
 
 def predict_gene_pathway_from_embedding(
     embedding_csv, 

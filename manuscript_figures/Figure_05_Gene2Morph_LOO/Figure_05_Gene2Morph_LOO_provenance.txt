@@ -1,0 +1,7 @@
+NeuroBridge manuscript Figure 5 LOO Provenance
+============================================================
+Generated: 2026-08-18T16:01:48.995132
+Mode: Leave-One-Patient-Out (LOO) Query-Patient Self-Exclusion
+Query 0: TCGA-02-0003 (GBM) -> Top Source Slide TCGA-06-5856 (49/300 patches)
+Query 4: TCGA-CS-4941 (LGG) -> Top Source Slide TCGA-DU-7011 (26/300 patches)
+Source run: results/genemorph_loo_rerun_20260818_final

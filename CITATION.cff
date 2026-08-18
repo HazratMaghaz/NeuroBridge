@@ -1,20 +1,18 @@
 cff-version: 1.2.0
-title: "CNS-MultiModalAI: Bidirectional WSI–Transcriptome Missing-Modality Framework for GBM/LGG Glioma Analysis"
-message: "If you use this software, please cite the associated thesis/manuscript once available."
+message: "If you use NeuroBridge / CNS-MultiModalAI in your research, please cite it as below."
+title: "NeuroBridge: Deep Multimodal AI Framework for CNS Tumor Classification and Morphology Retrieval"
 type: software
 authors:
-  - family-names: "Maghaz"
-    given-names: "Hazrat"
+  - family-names: Maghaz
+    given-names: Hazrat
+repository-code: "https://github.com/HazratMaghaz/CNS-MultiModalAI"
+version: "1.0.0"
+date-released: "2026-08-18"
 keywords:
-  - multimodal AI
+  - bioinformatics
   - computational pathology
+  - multimodal AI
   - glioblastoma
-  - low-grade glioma
-  - whole-slide images
-  - gene expression
-  - missing modality
-  - CTransPath
-  - transcriptomics
-license: MIT
-version: 0.1.0
-date-released: 2026-06-08
+  - lower grade glioma
+  - TCGA
+  - Gene2Morph

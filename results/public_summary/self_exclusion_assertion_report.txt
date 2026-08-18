@@ -1,0 +1,8 @@
+GENEMORPH LOO SELF-EXCLUSION ASSERTION REPORT
+============================================================
+Query 0 (TCGA-02-0003): Historical Self Patches=0, LOO Self Patches=0, Self H5 Excluded=1, Candidates Excluded=500, Unresolved H5=0, Status=PASS
+Query 1 (TCGA-02-0016): Historical Self Patches=0, LOO Self Patches=0, Self H5 Excluded=1, Candidates Excluded=500, Unresolved H5=0, Status=PASS
+Query 2 (TCGA-02-0026): Historical Self Patches=3, LOO Self Patches=0, Self H5 Excluded=1, Candidates Excluded=500, Unresolved H5=0, Status=PASS
+Query 3 (TCGA-CS-4938): Historical Self Patches=3, LOO Self Patches=0, Self H5 Excluded=1, Candidates Excluded=500, Unresolved H5=0, Status=PASS
+Query 4 (TCGA-CS-4941): Historical Self Patches=0, LOO Self Patches=0, Self H5 Excluded=1, Candidates Excluded=500, Unresolved H5=0, Status=PASS
+Query 5 (TCGA-CS-4942): Historical Self Patches=0, LOO Self Patches=0, Self H5 Excluded=1, Candidates Excluded=500, Unresolved H5=0, Status=PASS

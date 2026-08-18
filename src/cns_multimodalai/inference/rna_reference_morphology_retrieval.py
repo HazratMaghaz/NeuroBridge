@@ -274,6 +274,83 @@ def save_reference_coordinate_layout(df, out_path, patch_size=96, max_canvas_sid
     }
 
 
+TCGA_RE = re.compile(r"(TCGA-[A-Z0-9]{2}-[A-Z0-9]{4})", re.IGNORECASE)
+CPTAC_RE = re.compile(r"(C3[NL]-\d{5})", re.IGNORECASE)
+
+def normalize_tcga_patient_id(text):
+    """
+    Normalizes input text into a standard TCGA (TCGA-XX-YYYY) or CPTAC (C3N-XXXXX) patient/case ID.
+    Returns uppercase string or None if unparseable.
+    """
+    if not text or pd.isna(text):
+        return None
+    text_str = str(text).strip()
+    m = TCGA_RE.search(text_str)
+    if m:
+        return m.group(1).upper()
+    m = CPTAC_RE.search(text_str)
+    if m:
+        return m.group(1).upper()
+    return None
+
+def canonicalize_diagnosis_label(text):
+    """
+    Canonicalizes brain tumor diagnosis labels into standard 'GBM' or 'LGG'.
+    Returns 'UNKNOWN' for unrecognized inputs.
+    """
+    if text is None or pd.isna(text):
+        return "UNKNOWN"
+    s = str(text).strip().upper()
+    if any(k in s for k in ["GBM", "GLIOBLASTOMA"]):
+        return "GBM"
+    if any(k in s for k in ["LGG", "LOWER GRADE GLIOMA", "LOWER-GRADE GLIOMA"]):
+        return "LGG"
+    return "UNKNOWN"
+
+def assert_final_output_loo_clean(
+    df,
+    query_patient_id,
+    query_col="query_patient_id",
+    source_col="source_patient_id",
+    exclude_query_patient=True,
+    strict_loo=True,
+):
+    """
+    Hard validation assertion confirming that zero self-patient rows exist in final retrieval output.
+    Enforces checks when exclude_query_patient or strict_loo is True.
+    """
+    if not exclude_query_patient and not strict_loo:
+        return  # In generic non-LOO mode, self-patient rows are permitted.
+
+    norm_qpid = normalize_tcga_patient_id(query_patient_id)
+    if strict_loo and not norm_qpid:
+        raise ValueError(f"Strict LOO Error: Query patient ID '{query_patient_id}' cannot be normalized into standard TCGA format.")
+    
+    if df is None or df.empty:
+        if strict_loo:
+            raise AssertionError("Strict LOO Violation: Retrieval DataFrame is empty.")
+        return
+
+    for idx, row in df.iterrows():
+        spid = row.get(source_col)
+        if not spid and "patch_path" in row:
+            spid = row["patch_path"]
+
+        if not spid or pd.isna(spid):
+            if strict_loo:
+                raise AssertionError(f"Strict LOO Violation: Missing source patient ID at row index {idx}.")
+            continue
+
+        norm_spid = normalize_tcga_patient_id(spid)
+        if strict_loo and not norm_spid:
+            raise AssertionError(f"Strict LOO Violation: Unresolved source patient ID '{spid}' at row index {idx}.")
+
+        if norm_spid and norm_qpid and norm_spid == norm_qpid and exclude_query_patient:
+            raise AssertionError(
+                f"LOO VIOLATION DETECTED! Query patient {norm_qpid} retrieved self-patch "
+                f"from source patient {norm_spid} at row index {idx}!"
+            )
+
 def run_reference_morphology_retrieval(
     query_embedding: np.ndarray,
     query_patient_id: str,
@@ -282,15 +359,25 @@ def run_reference_morphology_retrieval(
     max_patch_images: int = 40,
     chunk_size: int = 128,
     patch_read_size: int = 256,
-    h5_dir: str = "/path/to/CNS-MultiModalAI/features/ctranspath_7B_wsi_streaming_full/slide_h5",
+    h5_dir: str = None,
+    exclude_query_patient: bool = False,
+    strict_loo: bool = False,
 ) -> dict:
     """
-    Advanced RNA -> Reference Morphology Retrieval.
+    Advanced RNA -> Reference Morphology Retrieval with Leave-One-Patient-Out (LOO) self-exclusion.
     Given a 1D or 2D (1, 768) CTransPath predicted embedding, retrieves best matching patches
     from the WSI H5 bank, extracts them, and generates visual layouts.
     """
+    if h5_dir is None:
+        h5_dir = str(config.PROJECT_ROOT / "features" / "ctranspath_7B_wsi_streaming_full" / "slide_h5")
     if not HAS_H5PY:
         raise ImportError("h5py is required but not installed.")
+        
+    norm_query_pid = normalize_tcga_patient_id(query_patient_id)
+    if strict_loo and not norm_query_pid:
+        raise ValueError(
+            f"Strict LOO Error: Cannot normalize query patient ID '{query_patient_id}' into standard TCGA case format (TCGA-XX-YYYY)."
+        )
         
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -300,6 +387,8 @@ def run_reference_morphology_retrieval(
     if not h5_files:
         raise FileNotFoundError(f"No H5 files found in {h5_dir}")
         
+    h5_order_map = {str(p): idx for idx, p in enumerate(h5_files)}
+        
     Q = np.asarray(query_embedding, dtype=np.float32)
     if Q.ndim == 1:
         Q = Q.reshape(1, -1)
@@ -307,9 +396,18 @@ def run_reference_morphology_retrieval(
     q_norm = Q / (np.linalg.norm(Q, axis=1, keepdims=True) + 1e-8)
     
     top_heap = []
+    
+    # H5 bank accounting counters
+    total_h5_files = len(h5_files)
+    invalid_h5_files = 0
+    excluded_self_h5_files = 0
+    searched_h5_files = 0
+    skipped_unresolved_h5_files = 0
+    excluded_self_patch_candidates = 0
     counter = 0
     
     for h5_path in h5_files:
+        h5_order = h5_order_map[str(h5_path)]
         try:
             with h5py.File(h5_path, "r") as h:
                 feat_name, feat_ds = find_dataset(
@@ -324,13 +422,27 @@ def run_reference_morphology_retrieval(
                 )
 
                 if feat_ds is None or coord_ds is None:
+                    invalid_h5_files += 1
                     continue
 
                 n_patches, feat_dim = feat_ds.shape
                 if feat_dim != Q.shape[1]:
+                    invalid_h5_files += 1
                     continue
                 
                 attrs = get_h5_attrs(h)
+                raw_source_pid = attrs.get("patient_id") or h5_path.stem
+                norm_source_pid = normalize_tcga_patient_id(raw_source_pid)
+
+                if strict_loo and not norm_source_pid:
+                    invalid_h5_files += 1
+                    skipped_unresolved_h5_files += 1
+                    continue
+
+                if exclude_query_patient and norm_query_pid and norm_source_pid and norm_query_pid == norm_source_pid:
+                    excluded_self_h5_files += 1
+                    excluded_self_patch_candidates += n_patches
+                    continue  # Strict LOO self-exclusion of ALL query patient slides!
 
                 for start in range(0, n_patches, chunk_size):
                     end = min(start + chunk_size, n_patches)
@@ -360,31 +472,66 @@ def run_reference_morphology_retrieval(
                             "raw_col2": int(cdict["raw_col2"][local_idx]),
                             "raw_col3": int(cdict["raw_col3"][local_idx]),
                             "slide_path": attrs.get("slide_path"),
-                            "source_patient_id": attrs.get("patient_id"),
-                            "source_slide_id": attrs.get("slide_id"),
+                            "source_patient_id": norm_source_pid or str(raw_source_pid),
+                            "source_patient_id_raw": str(raw_source_pid),
+                            "source_slide_id": str(attrs.get("slide_id") or h5_path.stem),
                             "source_diagnosis_label": attrs.get("diagnosis_label"),
                         }
 
                         counter += 1
-                        item = (score, counter, record)
+                        # Priority tuple for heap: (score, -h5_order, -global_idx, counter, record)
+                        item = (score, -h5_order, -global_idx, counter, record)
 
                         if len(top_heap) < top_k:
                             heapq.heappush(top_heap, item)
-                        elif score > top_heap[0][0]:
+                        elif item > top_heap[0]:
                             heapq.heapreplace(top_heap, item)
 
                     del X, X_norm, scores, coords
 
+                # Increment searched counter ONLY after complete successful H5 processing
+                searched_h5_files += 1
+
         except Exception as e:
+            invalid_h5_files += 1
             continue
 
-    top_records = [item[2] for item in sorted(top_heap, key=lambda x: x[0], reverse=True)]
+    # Logically consistent H5 accounting invariants check & assertion
+    eligible_h5_files = total_h5_files - invalid_h5_files
+    assert eligible_h5_files == excluded_self_h5_files + searched_h5_files, (
+        f"H5 Accounting invariant failed: eligible ({eligible_h5_files}) != "
+        f"excluded_self ({excluded_self_h5_files}) + searched ({searched_h5_files})"
+    )
+    assert total_h5_files == invalid_h5_files + eligible_h5_files, (
+        f"H5 Accounting invariant failed: total ({total_h5_files}) != "
+        f"invalid ({invalid_h5_files}) + eligible ({eligible_h5_files})"
+    )
+
+    # Explicit final deterministic sort: score DESC, h5_path ASC, patch_index ASC
+    top_records = [item[4] for item in top_heap]
+    top_records.sort(key=lambda rec: (-rec["score"], str(rec["h5_path"]), int(rec["patch_index"])))
+
     for rank, rec in enumerate(top_records, start=1):
         rec["rank"] = rank
 
     df = pd.DataFrame(top_records)
     if df.empty:
         raise ValueError("No patches retrieved from H5 bank.")
+
+    if (strict_loo or exclude_query_patient) and len(df) < top_k:
+        raise AssertionError(f"Strict LOO Violation: Retrieved {len(df)} patches, but exact top_k={top_k} was required.")
+
+    ranks = list(df["rank"])
+    expected_ranks = list(range(1, len(df) + 1))
+    if ranks != expected_ranks:
+        raise AssertionError(f"Strict Output Violation: Invalid ranks in retrieval output: {ranks[:10]}")
+
+    assert_final_output_loo_clean(
+        df,
+        query_patient_id,
+        exclude_query_patient=exclude_query_patient,
+        strict_loo=strict_loo,
+    )
         
     df["retrieved_patch_image"] = None
     df["retrieved_patch_exists"] = False
@@ -468,6 +615,16 @@ def run_reference_morphology_retrieval(
     best_score = float(df["score"].max()) if not df.empty else 0.0
     mean_top_score = float(df.head(10)["score"].mean()) if not df.empty else 0.0
 
+    bank_audit = {
+        "total_h5_files": total_h5_files,
+        "invalid_h5_files": invalid_h5_files,
+        "eligible_h5_files": eligible_h5_files,
+        "excluded_self_h5_files": excluded_self_h5_files,
+        "searched_h5_files": searched_h5_files,
+        "skipped_unresolved_h5_files": skipped_unresolved_h5_files,
+        "excluded_self_patch_candidates": excluded_self_patch_candidates,
+    }
+
     summary = {
         "status": "completed",
         "method": "RNA-predicted CTransPath embedding searched against internal H5 WSI patch bank",
@@ -478,6 +635,7 @@ def run_reference_morphology_retrieval(
         "mean_top_similarity_score": mean_top_score,
         "warning": "Reference retrieval only; not RNA-to-WSI reconstruction.",
         "query_patient_id": query_patient_id,
+        "bank_audit": bank_audit,
         "top_panel": str(top_panel_path) if top_panel_path.exists() else None,
         "source_panel": str(source_panel_path) if source_panel_path.exists() else None,
         "coordinate_layout": str(layout_path) if layout_path.exists() else None,

@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-08-18T16:01:39.763318",
+  "queries_count": 6,
+  "mean_peak_cosine": 0.8985998034477234,
+  "sd_peak_cosine": 0.01773520574178708,
+  "median_peak_cosine": 0.8930738866329193,
+  "mean_top300_cosine": 0.8716251523958313,
+  "sd_top300_cosine": 0.02022444672644784,
+  "median_top300_cosine": 0.8660113115111987,
+  "diagnosis_agreement": "5/6",
+  "total_historical_self_patches": 6,
+  "total_loo_self_patches": 0,
+  "figure5_status": "Figure 5 replacement REQUIRED."
+}
