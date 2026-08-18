@@ -86,10 +86,11 @@ logs/
 *.jpg
 *.jpeg
 
-# Allow docs images if you later want them tracked
+# Allow docs & manuscript images
 !docs/**/*.png
 !docs/**/*.jpg
 !docs/**/*.jpeg
+!manuscript_figures/**
 
 # ============================================================
 # Secrets / credentials
