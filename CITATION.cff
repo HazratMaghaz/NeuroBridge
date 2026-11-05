@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use the NeuroBridge research software, please cite this repository and the associated article when published."
+title: "NeuroBridge: Bidirectional Histopathology and Gene-Expression Representation Learning for GBM/LGG"
+type: software
+authors:
+  - family-names: Maghaz
+    given-names: Hazrat
+repository-code: "https://github.com/HazratMaghaz/NeuroBridge"
+version: "1.0.0"
+keywords:
+  - bioinformatics
+  - computational pathology
+  - transcriptomics
+  - missing-modality learning
+  - glioblastoma
+  - glioma

@@ -1,0 +1,45 @@
+{
+  "source": "Private NeuroBridge corrected V3 source-only subset",
+  "files": {
+    "analysis/run.sh": {
+      "source_sha256": "4230fe8ef03e5db9dad2c221b30a11e13a207af1336f6ff28c9e896da1da932f",
+      "staged_sha256": "427da2ed4f2bb6576dfcb36505b3b0e7ebf5c1f4ed5a10931f625c6e205b249c",
+      "staging_path_or_launcher_adjustment": true
+    },
+    "analysis/scripts/01_corrected_classification.py": {
+      "source_sha256": "529093e62af8381ff3dab570a8afd9d912968ac818f99461f61f8e5d74047c53",
+      "staged_sha256": "0c5ce7ed06163bb86dc9a549a577a16fecd8b52949731f5678e22ea59cc67cc0",
+      "staging_path_or_launcher_adjustment": true
+    },
+    "analysis/scripts/02_corrected_biology.py": {
+      "source_sha256": "33d50e1ed789eb4fe772a437705e8ec6c7001cd23ff0992ac649fde5e33cf789",
+      "staged_sha256": "b9e538686cb2be56abf1c989ae26c098c09ba699d43475639211c56c942f789a",
+      "staging_path_or_launcher_adjustment": true
+    },
+    "analysis/scripts/03_external_genemorph_reporting.py": {
+      "source_sha256": "a72c4374a1ce03574ca63a75303e4f13ab6531d9c06929cfb4dedd2ac4683756",
+      "staged_sha256": "1636a9f35425e9b4b6b871d055e12cc2030b7737792d348f3de7e15297d37138",
+      "staging_path_or_launcher_adjustment": true
+    },
+    "analysis/scripts/04_verify_and_package.py": {
+      "source_sha256": "cdba232f51eea26c594ec88a6602cafbb48c90aa9c30e871379260819e6431b2",
+      "staged_sha256": "cea9e64369941e7128b213a4d86f07a6be88d25f1a7840ea4b99b81de1318c55",
+      "staging_path_or_launcher_adjustment": true
+    },
+    "analysis/scripts/nbv3_common.py": {
+      "source_sha256": "ea39ac8077e5d6a18385d6eab445a79412516385fd547e0c9dbc2ba8f2e3367f",
+      "staged_sha256": "ea39ac8077e5d6a18385d6eab445a79412516385fd547e0c9dbc2ba8f2e3367f",
+      "staging_path_or_launcher_adjustment": false
+    },
+    "analysis/tests/test_invariants.py": {
+      "source_sha256": "954fecd1076bb01991d6e2dc868b27e074446584737d5b11dfb4c955b2538677",
+      "staged_sha256": "954fecd1076bb01991d6e2dc868b27e074446584737d5b11dfb4c955b2538677",
+      "staging_path_or_launcher_adjustment": false
+    },
+    "analysis/tests/create_synthetic_dataset.py": {
+      "source_sha256": "b817ce39444b54b78624d326d932b79d23533708bed18b0142773ccdf9f441d3",
+      "staged_sha256": "b817ce39444b54b78624d326d932b79d23533708bed18b0142773ccdf9f441d3",
+      "staging_path_or_launcher_adjustment": false
+    }
+  }
+}

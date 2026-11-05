@@ -1,0 +1,43 @@
+# Research data, derived embeddings and output
+/data/
+/results/
+/review_packages/
+/models/
+/features/
+/embeddings/
+/patches/
+/image-data/
+*.svs
+*.ndpi
+*.mrxs
+*.bam
+*.cram
+*.fastq
+*.fq
+*.fastq.gz
+*.fq.gz
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.ckpt
+*.joblib
+*.pkl
+*.zip
+*.tar.gz
+*.pdf
+# Credentials and local working files
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+token.json
+# Build/cache
+.venv/
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+*.pyc
+.DS_Store
