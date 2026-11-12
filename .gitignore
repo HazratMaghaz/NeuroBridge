@@ -41,3 +41,12 @@ __pycache__/
 .ipynb_checkpoints/
 *.pyc
 .DS_Store
+
+# Study-specific configuration (keep outside Git)
+my-study.yaml
+*.local.yaml
+
+# Editable Python package build metadata
+*.egg-info/
+build/
+dist/

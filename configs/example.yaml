@@ -1,0 +1,15 @@
+# NeuroBridge requires ORIGINAL paired TCGA patient-level matrices, not FASTQ/SVS.
+# Relative `project` paths resolve relative to this YAML file.
+project: /absolute/path/to/prepared/tcga-study
+run_id: reproduction_01
+split_csv: metadata/phase6b_patient_splits.csv
+device: cpu                  # cpu | cuda
+cv_folds: 5
+cv_repeats: 3
+epochs: 150
+patience: 20
+pca_dim: 128
+topvar: 5000
+img_to_mol: ridge           # corrected V3 default
+# programs_only works offline. Enrichr requires network and gseapy.
+enrichment: programs_only  # programs_only | enrichr | /path/to/library.gmt
