@@ -1,0 +1,2 @@
+# Includes PyTorch and Enrichr dependencies. On Linux, pip may download CUDA packages.
+-e '.[run,enrichment]'

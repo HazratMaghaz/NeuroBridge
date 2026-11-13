@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neurobridge-research"
+version = "0.2.0"
+description = "Research-only reproducibility CLI for paired TCGA-GBM/LGG multimodal evaluation"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+authors = [{name = "Hazrat Maghaz"}]
+dependencies = [
+  "numpy>=1.26,<3", "pandas>=2.0,<3", "scipy>=1.11,<2",
+  "scikit-learn>=1.5,<1.9", "matplotlib>=3.8,<4", "PyYAML>=6,<7"
+]
+
+[project.optional-dependencies]
+run = ["torch>=2.2"]
+enrichment = ["gseapy>=1.1"]
+
+[project.scripts]
+neurobridge = "neurobridge.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["neurobridge*"]

@@ -1,43 +1,68 @@
-# Reproducing the NeuroBridge analysis
+# NeuroBridge: research reproducibility and inputs
 
-## Research scope
+## Scope
 
-The corrected research analysis distinguishes GBM-like from LGG-like patterns in paired TCGA cohorts. This repository distributes methods code and unit tests only. It is not the historic thesis working directory or the optional research GUI.
+This repository implements the corrected V3 retrospective **feature-level** TCGA-GBM/LGG evaluation. It is not a WSI-to-result workflow, a FASTQ processor, a trained patient-level predictor, or a production API. It does not automatically download GDC/TCIA data. Source WSIs, gene-expression processing and pretrained pathology feature extraction were performed upstream and are not reproduced end-to-end here.
 
-## Software
+## Environment
 
-Use Python 3.11 on Linux. Install `requirements.txt` and run `python -m unittest discover -s analysis/tests -p 'test_*.py' -v` before processing biomedical data. GPU execution requires a compatible PyTorch/CUDA installation.
-
-## Required external inputs (not included)
-
-All paths below are relative to the root selected by `PROJECT`:
-
-- `metadata/phase6b_patient_splits.csv`: `patient_id`, `split`, `project_id`, with train/val/test rows.
-- `data/expression/processed/expression_matrix_log2_tpm_filtered.csv`: patient rows and gene-expression columns.
-- `data/expression/processed/expression_gene_annotation.csv`: annotation used for target selection.
-- `features/ctranspath_7B_wsi_streaming_full/patient_level_ctranspath_mean_embeddings.csv`: patient-level CTransPath embeddings.
-- `embeddings/slide_embeddings/resnet50_full_selected_best_mean_pool_patient_embeddings_final.csv`: patient-level ResNet-50 embeddings.
-
-The full retrospective four-stage run also needs existing external CPTAC and strict Gene2Morph LOO tables. Consult `analysis/scripts/03_external_genemorph_reporting.py` for its expected file locations. The script checks supplied outputs; it **does not** independently regenerate external predictions.
-
-Acquire source datasets through their original portals and comply with the data-use agreements. Do not commit patient-level CSVs, diagnostic WSIs, or restricted records.
-
-## Running
+Install on Linux with Python 3.11:
 
 ```bash
-PROJECT=/absolute/path/to/your/local/study \
-NEUROBRIDGE_SPLITS_CSV=metadata/phase6b_patient_splits.csv \
-DEVICE=cpu \
-IMG_TO_MOL=ridge \
-bash analysis/run.sh release_reproduction programs_only
+conda create -n neurobridge python=3.11 -y
+conda activate neurobridge
+bash setup_cpu.sh
+python -m unittest discover -s tests -p 'test_*.py' -v
+python -m unittest discover -s analysis/tests -p 'test_*.py' -v
 ```
 
-`enrichr` is an optional online pathway-enrichment mode requiring `gseapy` and a network connection. Other software dependencies are documented in `requirements.txt`.
+PyTorch is required for the classification or demo stage, but not for preflight. For a CPU build:
 
-## Methods and interpretation boundaries
+```bash
+neurobridge demo --output /tmp/neurobridge-synthetic-demo
+```
 
-Corrected development evaluation refits molecular transformations, supervised representation learning, and cross-modal estimators inside development cross-validation folds. The fixed 103-patient partition was examined historically and must be described as retrospective, not an untouched independent test. External CPTAC-GBM contains only GBM cases, so its evaluations cannot establish LGG specificity. Gene2Morph retrieves real reference patches, not synthetic histology images.
+For GPU execution, choose the supported CUDA build from [PyTorch installation instructions](https://pytorch.org/get-started/locally/). Optional Enrichr selection uses `python -m pip install '.[enrichment]'` and requires network access.
 
-## Version provenance
+## Configure and validate
 
-The scripts are copied from the connected private NeuroBridge V3 analysis source. The staging script changes **only machine-specific default file paths**, never model-fitting or evaluation logic. `SOURCE_SHA256.json` contains checksums of staged scripts for audit and traceability.
+Copy `configs/example.yaml` to a private/local YAML file. Set `project` to the directory containing the original *prepared* patient-level feature matrices. In the configuration, `split_csv` is resolved relative to that project; `project` itself is resolved relative to the YAML file when not absolute. **Do not commit the local configuration or any real cohort files.**
+
+```bash
+neurobridge validate --config my-study.yaml --stage classification
+neurobridge run --config my-study.yaml --stage classification
+```
+
+### Required files under `project`
+
+| Path | Requirement |
+| --- | --- |
+| `metadata/phase6b_patient_splits.csv` | Patient IDs, `split`, `project_id`; exactly 480 train, 103 validation, 103 test |
+| `data/expression/processed/expression_matrix_log2_tpm_filtered.csv` | 686 matched patient IDs and ENSG expression columns |
+| `features/ctranspath_7B_wsi_streaming_full/patient_level_ctranspath_mean_embeddings.csv` | 768 indexed CTransPath columns and 686 patient IDs |
+| `embeddings/slide_embeddings/resnet50_full_selected_best_mean_pool_patient_embeddings_final.csv` | 2,048 indexed ResNet50 columns and 686 patient IDs |
+| `data/expression/processed/expression_gene_annotation.csv` | Required by biology stage; `gene_id_clean` and `gene_type` |
+
+The validator checks files, patient identity/splits, and feature-column dimensions. The scientific scripts additionally check finite numerical inputs and prevent silent patient joins. Input access follows applicable dataset licenses and approvals.
+
+## Supported run stages
+
+- `classification`: corrected fold-isolated evaluation, eight feature-availability scenarios and six core scenarios; generates figure-source tables and Figures 2–3.
+- `biology`: development-selected molecular targets with Ridge estimation; requires annotation. `programs_only` works offline; `enrichr` requires gseapy/network and uses a live external library; `.gmt` accepts a prespecified independent gene set file.
+- `core`: classification then biology; does **not** require historical external data.
+- `external`: verifies saved historical CPTAC RNA, CPTAC WSI and six Gene2Morph LOO source files; does **not** regenerate model predictions.
+- `package`: requires completed classification, biology, and external manifests, then produces the review ZIP.
+- `full`: classification + biology + external + package; preflight requires all historical source outputs.
+
+```bash
+neurobridge run --config my-study.yaml --stage core
+neurobridge run --config my-study.yaml --stage classification --dry-run
+```
+
+Stages refuse to overwrite existing non-empty output directories. Use a fresh `run_id` for reruns. Outputs are always saved under `project/results/corrected_v3/<run_id>/` to preserve existing algorithms; this release does **not** support a separate output-root flag for real analyses.
+
+## Scientific boundaries
+
+The 103-patient fixed TCGA test cohort was examined in historical project experiments, so the corrected classification is **retrospective re-evaluation, not pristine prospective testing**. PCA, supervised molecular encoders and cross-modal mappings are refitted within outer development folds. External CPTAC-GBM is GBM-only; patient-level GBM-positive recognition does not establish LGG specificity or external binary accuracy. Gene2Morph retrieves actual reference histology patches; current public code verifies six-query historical output rather than rerunning the whole retrieval bank. Histology-to-expression prediction estimates selected targets rather than complete measured RNA.
+
+`SOURCE_SHA256.json` records original and staged scientific code hashes. CLI and validation code are additional wrappers; the core scientific algorithms remain unchanged.

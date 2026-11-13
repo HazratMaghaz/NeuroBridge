@@ -1,44 +1,27 @@
 # NeuroBridge
 
-Research code for **GBM-like versus LGG-like** analysis using paired histopathology and gene-expression features.
+Source-only research code for **GBM-like versus LGG-like** analysis using matched histopathology and gene-expression features. This retrospective methods package provides patient-level classification, missing-modality representation mapping, and histology-to-molecular target modeling. **Research only; not a diagnostic application.**
 
-NeuroBridge provides corrected patient-level evaluation, missing-modality feature mapping, and molecular-target analysis. **Research use only — not a diagnostic or clinical tool.**
-
-## Quick start
+## Install and test (Linux, Python 3.11)
 
 ```bash
-# After cloning this repository:
 conda create -n neurobridge python=3.11 -y
 conda activate neurobridge
-python -m pip install -r requirements.txt
-python -m unittest discover -s analysis/tests -p 'test_*.py' -v
-bash quick_demo.sh  # small synthetic CPU execution, not manuscript results
+bash setup_cpu.sh  # installs CLI and CPU-only PyTorch into active neurobridge env
+neurobridge demo
 ```
 
-The five included tests use **synthetic inputs**. You can inspect the full workflow without data:
+To use a CUDA GPU, follow [PyTorch's official selector](https://pytorch.org/get-started/locally/) rather than installing the CPU wheel. Installing `requirements-full.txt` may download CUDA libraries on Linux. A lightweight installation can run `neurobridge --help` and input validation **without PyTorch**.
+
+## Run on the original prepared study features
 
 ```bash
-python analysis/scripts/01_corrected_classification.py --help
-bash analysis/run.sh --help
+cp configs/example.yaml my-study.yaml
+# Edit project: to point to YOUR prepared TCGA study directory.
+neurobridge validate --config my-study.yaml --stage classification
+neurobridge run --config my-study.yaml --stage classification
 ```
 
-## Run an analysis
+Use `--stage core` to run classification and biological target analysis, or `--stage external` to **verify historical external output files** (not refit external models). `--stage full` requires saved historical CPTAC and Gene2Morph files. Results are written under `PROJECT/results/corrected_v3/RUN_ID/`; every new analysis needs a distinct `run_id`. See [reproducibility and stage instructions](docs/REPRODUCIBILITY.md).
 
-You must first obtain the original research datasets and prepare the required patient-level feature matrices. Dataset locations are described in [the reproducibility guide](docs/REPRODUCIBILITY.md).
-
-```bash
-export PROJECT=/path/to/your/research/data
-export NEUROBRIDGE_SPLITS_CSV=metadata/phase6b_patient_splits.csv
-export DEVICE=cpu
-bash analysis/run.sh my_reproduction programs_only
-```
-
-The full four-stage command also needs saved **historical external-validation and Gene2Morph inputs**, which are **not** included here. It will stop rather than invent missing results.
-
-## Contents
-
-- [`analysis/`](analysis/) — corrected analysis scripts and invariants
-- [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md) — data contract and evaluation details
-- [`LICENSE`](LICENSE) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — license boundaries
-
-**No patient data, WSIs, model weights, trained checkpoints, or generated predictions are included.** The retrospective test set was previously examined during model development. These scripts are not a clinically validated inference application.
+`neurobridge demo` uses **synthetic data** and is strictly a software smoke test, not a re-evaluation of the manuscript. The canonical retrospective fixed-test group was previously examined during development. No patient data, raw slides, trained weights, or generated predictions are shipped in this repository.
