@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="375" viewBox="0 0 1280 375" role="img" aria-label="NeuroBridge multimodal glioma research banner">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#071326"/><stop offset="0.6" stop-color="#102341"/><stop offset="1" stop-color="#172047"/></linearGradient>
+  <linearGradient id="stem" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#41ded1"/><stop offset="0.52" stop-color="#5ba3f4"/><stop offset="1" stop-color="#b58cfc"/></linearGradient>
+  <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#273950" stop-opacity=".9"/><stop offset="1" stop-color="#0c172a" stop-opacity=".86"/></linearGradient>
+  <radialGradient id="spot"><stop offset="0" stop-color="#188eab" stop-opacity=".4"/><stop offset="1" stop-color="#188eab" stop-opacity="0"/></radialGradient>
+  <radialGradient id="spot2"><stop offset="0" stop-color="#875dd7" stop-opacity=".3"/><stop offset="1" stop-color="#875dd7" stop-opacity="0"/></radialGradient>
+  <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="#3e6982" stroke-opacity=".12" stroke-width="1"/></pattern>
+  <filter id="glow"><feGaussianBlur stdDeviation="6"/></filter>
+</defs>
+<rect width="1280" height="375" rx="18" fill="url(#bg)"/>
+<rect width="1280" height="375" rx="18" fill="url(#grid)"/>
+<ellipse cx="1170" cy="98" rx="325" ry="245" fill="url(#spot2)"/>
+<ellipse cx="130" cy="255" rx="330" ry="260" fill="url(#spot)"/>
+<!-- A visual bridge between pathology and RNA: data-inspired only. -->
+<path d="M45 277 C 178 104, 248 351, 387 179 S 595 101, 678 185" fill="none" stroke="#35c8d4" stroke-width="8" stroke-opacity=".08" filter="url(#glow)"/>
+<path d="M45 277 C 178 104, 248 351, 387 179 S 595 101, 678 185" fill="none" stroke="url(#stem)" stroke-width="2.3" stroke-opacity=".63" stroke-dasharray="6 8"/>
+<!-- left abstract tissue tile -->
+<g transform="translate(40,107)">
+<rect x="0" y="0" width="214" height="206" rx="17" fill="url(#glass)" stroke="#c79ce8" stroke-opacity=".45"/>
+<rect x="12" y="13" width="190" height="170" rx="9" fill="#24304e"/>
+<g opacity=".9">
+<path d="M20 61Q39 22 67 48T105 61Q141 23 175 58L197 86Q167 110 150 84T97 108Q71 129 47 105Z" fill="#c58dbd" fill-opacity=".7"/>
+<path d="M21 147Q51 91 81 137T137 148Q171 95 194 141L195 176 17 176Z" fill="#e1b4cf" fill-opacity=".46"/>
+<g fill="#76589d" stroke="#ebcae9" stroke-width="1" stroke-opacity=".65">
+<ellipse cx="35" cy="46" rx="10" ry="6" transform="rotate(20 35 46)"/><ellipse cx="83" cy="72" rx="9" ry="6"/><ellipse cx="152" cy="57" rx="8" ry="5"/><ellipse cx="172" cy="108" rx="9" ry="5"/><ellipse cx="44" cy="126" rx="8" ry="6"/><ellipse cx="101" cy="142" rx="12" ry="7"/><ellipse cx="164" cy="162" rx="10" ry="6"/><ellipse cx="95" cy="40" rx="8" ry="5"/>
+</g></g>
+<text x="13" y="198" font-family="Arial,sans-serif" fill="#c3cfe2" font-size="11.5" letter-spacing="1.7">HISTOLOGY FEATURES</text>
+</g>
+<!-- right expression micro-heatmap -->
+<g transform="translate(1021,101)">
+<rect x="0" y="0" width="218" height="211" rx="17" fill="url(#glass)" stroke="#56cbdb" stroke-opacity=".48"/>
+<g id="cells">
+<rect x="13.0" y="15" width="13.8" height="16" rx="3" fill="#5ba6dc" opacity="0.35"/>
+<rect x="30.3" y="15" width="13.8" height="16" rx="3" fill="#765ec7" opacity="0.42"/>
+<rect x="47.6" y="15" width="13.8" height="16" rx="3" fill="#284b82" opacity="0.49"/>
+<rect x="64.9" y="15" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.56"/>
+<rect x="82.2" y="15" width="13.8" height="16" rx="3" fill="#be73bd" opacity="0.63"/>
+<rect x="99.5" y="15" width="13.8" height="16" rx="3" fill="#1e857e" opacity="0.70"/>
+<rect x="116.8" y="15" width="13.8" height="16" rx="3" fill="#3ed7bc" opacity="0.77"/>
+<rect x="134.1" y="15" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.84"/>
+<rect x="151.4" y="15" width="13.8" height="16" rx="3" fill="#5ba6dc" opacity="0.41"/>
+<rect x="168.7" y="15" width="13.8" height="16" rx="3" fill="#765ec7" opacity="0.48"/>
+<rect x="186.0" y="15" width="13.8" height="16" rx="3" fill="#284b82" opacity="0.55"/>
+<rect x="13.0" y="37" width="13.8" height="16" rx="3" fill="#1e857e" opacity="0.48"/>
+<rect x="30.3" y="37" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.55"/>
+<rect x="47.6" y="37" width="13.8" height="16" rx="3" fill="#765ec7" opacity="0.62"/>
+<rect x="64.9" y="37" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.69"/>
+<rect x="82.2" y="37" width="13.8" height="16" rx="3" fill="#1e857e" opacity="0.76"/>
+<rect x="99.5" y="37" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.83"/>
+<rect x="116.8" y="37" width="13.8" height="16" rx="3" fill="#765ec7" opacity="0.40"/>
+<rect x="134.1" y="37" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.47"/>
+<rect x="151.4" y="37" width="13.8" height="16" rx="3" fill="#1e857e" opacity="0.54"/>
+<rect x="168.7" y="37" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.61"/>
+<rect x="186.0" y="37" width="13.8" height="16" rx="3" fill="#765ec7" opacity="0.68"/>
+<rect x="13.0" y="59" width="13.8" height="16" rx="3" fill="#284b82" opacity="0.61"/>
+<rect x="30.3" y="59" width="13.8" height="16" rx="3" fill="#1e857e" opacity="0.68"/>
+<rect x="47.6" y="59" width="13.8" height="16" rx="3" fill="#5ba6dc" opacity="0.75"/>
+<rect x="64.9" y="59" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.82"/>
+<rect x="82.2" y="59" width="13.8" height="16" rx="3" fill="#3ed7bc" opacity="0.39"/>
+<rect x="99.5" y="59" width="13.8" height="16" rx="3" fill="#765ec7" opacity="0.46"/>
+<rect x="116.8" y="59" width="13.8" height="16" rx="3" fill="#be73bd" opacity="0.53"/>
+<rect x="134.1" y="59" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.60"/>
+<rect x="151.4" y="59" width="13.8" height="16" rx="3" fill="#284b82" opacity="0.67"/>
+<rect x="168.7" y="59" width="13.8" height="16" rx="3" fill="#1e857e" opacity="0.74"/>
+<rect x="186.0" y="59" width="13.8" height="16" rx="3" fill="#5ba6dc" opacity="0.81"/>
+<rect x="13.0" y="81" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.74"/>
+<rect x="30.3" y="81" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.81"/>
+<rect x="47.6" y="81" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.38"/>
+<rect x="64.9" y="81" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.45"/>
+<rect x="82.2" y="81" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.52"/>
+<rect x="99.5" y="81" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.59"/>
+<rect x="116.8" y="81" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.66"/>
+<rect x="134.1" y="81" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.73"/>
+<rect x="151.4" y="81" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.80"/>
+<rect x="168.7" y="81" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.37"/>
+<rect x="186.0" y="81" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.44"/>
+<rect x="13.0" y="103" width="13.8" height="16" rx="3" fill="#be73bd" opacity="0.37"/>
+<rect x="30.3" y="103" width="13.8" height="16" rx="3" fill="#765ec7" opacity="0.44"/>
+<rect x="47.6" y="103" width="13.8" height="16" rx="3" fill="#3ed7bc" opacity="0.51"/>
+<rect x="64.9" y="103" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.58"/>
+<rect x="82.2" y="103" width="13.8" height="16" rx="3" fill="#5ba6dc" opacity="0.65"/>
+<rect x="99.5" y="103" width="13.8" height="16" rx="3" fill="#1e857e" opacity="0.72"/>
+<rect x="116.8" y="103" width="13.8" height="16" rx="3" fill="#284b82" opacity="0.79"/>
+<rect x="134.1" y="103" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.36"/>
+<rect x="151.4" y="103" width="13.8" height="16" rx="3" fill="#be73bd" opacity="0.43"/>
+<rect x="168.7" y="103" width="13.8" height="16" rx="3" fill="#765ec7" opacity="0.50"/>
+<rect x="186.0" y="103" width="13.8" height="16" rx="3" fill="#3ed7bc" opacity="0.57"/>
+<rect x="13.0" y="125" width="13.8" height="16" rx="3" fill="#765ec7" opacity="0.50"/>
+<rect x="30.3" y="125" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.57"/>
+<rect x="47.6" y="125" width="13.8" height="16" rx="3" fill="#1e857e" opacity="0.64"/>
+<rect x="64.9" y="125" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.71"/>
+<rect x="82.2" y="125" width="13.8" height="16" rx="3" fill="#765ec7" opacity="0.78"/>
+<rect x="99.5" y="125" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.35"/>
+<rect x="116.8" y="125" width="13.8" height="16" rx="3" fill="#1e857e" opacity="0.42"/>
+<rect x="134.1" y="125" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.49"/>
+<rect x="151.4" y="125" width="13.8" height="16" rx="3" fill="#765ec7" opacity="0.56"/>
+<rect x="168.7" y="125" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.63"/>
+<rect x="186.0" y="125" width="13.8" height="16" rx="3" fill="#1e857e" opacity="0.70"/>
+<rect x="13.0" y="147" width="13.8" height="16" rx="3" fill="#3ed7bc" opacity="0.63"/>
+<rect x="30.3" y="147" width="13.8" height="16" rx="3" fill="#1e857e" opacity="0.70"/>
+<rect x="47.6" y="147" width="13.8" height="16" rx="3" fill="#be73bd" opacity="0.77"/>
+<rect x="64.9" y="147" width="13.8" height="16" rx="3" fill="#3daacc" opacity="0.84"/>
+<rect x="82.2" y="147" width="13.8" height="16" rx="3" fill="#284b82" opacity="0.41"/>
+<rect x="99.5" y="147" width="13.8" height="16" rx="3" fill="#765ec7" opacity="0.48"/>
+<rect x="116.8" y="147" width="13.8" height="16" rx="3" fill="#5ba6dc" opacity="0.55"/>
+<rect x="134.1" y="147" width="13.8" height="16" rx="3" fill="#df93ad" opacity="0.62"/>
+<rect x="151.4" y="147" width="13.8" height="16" rx="3" fill="#3ed7bc" opacity="0.69"/>
+<rect x="168.7" y="147" width="13.8" height="16" rx="3" fill="#1e857e" opacity="0.76"/>
+<rect x="186.0" y="147" width="13.8" height="16" rx="3" fill="#be73bd" opacity="0.83"/>
+</g>
+<text x="12" y="198" font-family="Arial,sans-serif" fill="#c3cfe2" font-size="11.5" letter-spacing="1.7">EXPRESSION FEATURES</text>
+</g>
+<!-- center title with intentional negative space -->
+<rect x="291" y="74" width="694" height="249" rx="19" fill="#081325" opacity=".54"/>
+<rect x="326" y="95" width="130" height="28" rx="14" fill="#0f766e" fill-opacity=".22" stroke="#3cceba" stroke-opacity=".48"/>
+<circle cx="343" cy="109" r="4.5" fill="#40e0c7"/>
+<text x="354" y="114" font-family="Arial,sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.35" fill="#95f2e8">OPEN METHODS</text>
+<text x="323" y="201" font-family="Arial,Helvetica,sans-serif" font-size="76" font-weight="800" letter-spacing="-2.2" fill="#f7fbff">Neuro<tspan fill="#54dfce">Bridge</tspan></text>
+<rect x="326" y="215" width="602" height="2.3" rx="1.1" fill="url(#stem)" opacity=".82"/>
+<text x="327" y="252" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="400" fill="#c8d7eb">Multimodal glioma research toolkit</text>
+<text x="329" y="285" font-family="Arial,Helvetica,sans-serif" font-size="13" letter-spacing="1.5" fill="#92aec8">PATIENT-LEVEL ANALYSIS  ·  PREPARED FEATURES  ·  REPRODUCIBLE CLI</text>
+<g stroke="#80dccc" stroke-opacity=".18"><path d="M288 49h695"/><path d="M288 341h695"/></g>
+</svg>
