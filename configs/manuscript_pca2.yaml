@@ -1,0 +1,15 @@
+# Public example for revised PCA-2 manuscript analysis.
+# This is a TEMPLATE only; it contains no actual patient or dataset files.
+# Do not commit a local configuration containing private paths or credentials.
+project: /absolute/path/to/prepared/tcga-study
+run_id: pca2_reproduction_01
+split_csv: metadata/phase6b_patient_splits.csv  # change if your approved manifest is elsewhere
+device: cpu                               # cpu | cuda (requires matching PyTorch install)
+cv_folds: 5
+cv_repeats: 3
+epochs: 150
+patience: 20
+pca_dim: 2                               # IMPORTANT: revised manuscript PCA representation
+topvar: 5000
+img_to_mol: ridge
+enrichment: programs_only

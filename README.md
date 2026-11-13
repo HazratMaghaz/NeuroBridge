@@ -25,3 +25,8 @@ neurobridge run --config my-study.yaml --stage classification
 Use `--stage core` to run classification and biological target analysis, or `--stage external` to **verify historical external output files** (not refit external models). `--stage full` requires saved historical CPTAC and Gene2Morph files. Results are written under `PROJECT/results/corrected_v3/RUN_ID/`; every new analysis needs a distinct `run_id`. See [reproducibility and stage instructions](docs/REPRODUCIBILITY.md).
 
 `neurobridge demo` uses **synthetic data** and is strictly a software smoke test, not a re-evaluation of the manuscript. The canonical retrospective fixed-test group was previously examined during development. No patient data, raw slides, trained weights, or generated predictions are shipped in this repository.
+
+## PCA-2 manuscript configuration (retrospective)
+
+The revised manuscript used **two principal components** for the direct molecular PCA representation, rather than the original 128-component study setting. The generic `configs/example.yaml` intentionally retains `pca_dim: 128` for historical use; that is **not** the revised manuscript setting. For a PCA-2 analysis, use `configs/manuscript_pca2.yaml` and set its `project` and `split_csv` values to paths for your own legally obtained **prepared** data. See [PCA-2 manuscript reproducibility and limitations](docs/PCA2_MANUSCRIPT_REPRODUCIBILITY.md). The `neurobridge demo` command is synthetic and does **not** reproduce either paper setting.
+
