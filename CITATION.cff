@@ -7,6 +7,7 @@ authors:
     given-names: Hazrat
 repository-code: "https://github.com/HazratMaghaz/NeuroBridge"
 version: "0.2.0"
+doi: "10.5281/zenodo.24211521"
 keywords:
   - bioinformatics
   - computational pathology

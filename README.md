@@ -8,6 +8,9 @@
   [![License MIT](https://img.shields.io/badge/License-MIT-0E8F8F?style=flat-square)](LICENSE)
   [![Source only](https://img.shields.io/badge/Release-source--only-5948BE?style=flat-square)](#what-is-included)
   [![Research use](https://img.shields.io/badge/Use-research%20only-B45309?style=flat-square)](#scientific-scope-and-limitations)
+  [![CI](https://github.com/HazratMaghaz/NeuroBridge/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/HazratMaghaz/NeuroBridge/actions/workflows/ci.yml)
+  [![Release](https://img.shields.io/github/v/release/HazratMaghaz/NeuroBridge?style=flat-square)](https://github.com/HazratMaghaz/NeuroBridge/releases/tag/v0.2.0)
+  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24211521.svg)](https://doi.org/10.5281/zenodo.24211521)
 
   [![Quick Start](https://img.shields.io/badge/01-QUICK%20START-13A89E?style=for-the-badge)](#quick-start)
   [![PCA-2](https://img.shields.io/badge/02-PCA--2%20GUIDE-6654BF?style=for-the-badge)](#reproduce-the-pca-2-manuscript-setting)
@@ -189,7 +192,7 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 cat docs/REPRODUCIBILITY.md
 ```
 
-`ci/neurobridge-ci.yml` is a **CI workflow template**, not an active GitHub Actions workflow. Do not assume that GitHub checks are running merely because the YAML file is present. The research repository deliberately separates synthetic software testing from claims about real-data evaluation.
+The active automated workflow is [`.github/workflows/ci.yml`](.github/workflows/ci.yml). It runs CLI and scientific invariant tests on pushes and pull requests to `main`. The legacy file in `ci/` is only a template. The research repository deliberately separates synthetic software testing from claims about real-data evaluation.
 
 </details>
 
@@ -208,6 +211,15 @@ cat docs/REPRODUCIBILITY.md
 </details>
 
 ## Citation and license
+
+**Archived software release:** Maghaz, H. (2026).
+*NeuroBridge: Bidirectional Histopathology and Gene-Expression
+Representation Learning for GBM/LGG* (Version 0.2.0)
+[Computer software]. Zenodo.
+https://doi.org/10.5281/zenodo.24211521
+
+**GitHub release:** [NeuroBridge v0.2.0](https://github.com/HazratMaghaz/NeuroBridge/releases/tag/v0.2.0)
+
 
 If this repository helps your work, use GitHub's **Cite this repository** control or see [`CITATION.cff`](CITATION.cff). Cite the associated manuscript separately when publication details are available; **no paper DOI is asserted here**.
 
